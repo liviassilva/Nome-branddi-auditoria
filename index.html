@@ -1,0 +1,2664 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoria · Atendimento — Branddi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+<style>
+/* ══════════════════════════════════════════
+   TOKENS — LIGHT
+══════════════════════════════════════════ */
+:root, [data-theme="light"] {
+  --bg:        #F5F7FA;
+  --surface:   #FFFFFF;
+  --surface2:  #F0F2F6;
+  --surface3:  #E4E8EF;
+  --border:    rgba(0,0,0,0.07);
+  --border2:   rgba(0,0,0,0.13);
+  --text:      #111827;
+  --text2:     #4B5563;
+  --text3:     #9CA3AF;
+
+  /* Branddi teal palette */
+  --brand:        #1ABCAC;
+  --brand-dark:   #0F9488;
+  --brand-light:  #E6FAF8;
+  --brand-mid:    rgba(26,188,172,0.15);
+
+  --green:     #10B981; --green-bg: rgba(16,185,129,0.1);
+  --red:       #EF4444; --red-bg:   rgba(239,68,68,0.1);
+  --amber:     #F59E0B; --amber-bg: rgba(245,158,11,0.1);
+  --blue:      #3B82F6; --blue-bg:  rgba(59,130,246,0.1);
+  --purple:    #8B5CF6; --purple-bg:rgba(139,92,246,0.1);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow:    0 4px 16px rgba(0,0,0,0.08);
+  --radius:    12px; --radius-sm: 8px; --radius-xs: 5px;
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+/* ══════════════════════════════════════════
+   TOKENS — DARK
+══════════════════════════════════════════ */
+[data-theme="dark"] {
+  --bg:        #0D1117;
+  --surface:   #161B22;
+  --surface2:  #1C2128;
+  --surface3:  #262D38;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.13);
+  --text:      #E6EDF3;
+  --text2:     #8B949E;
+  --text3:     #484F58;
+
+  --brand:        #1ABCAC;
+  --brand-dark:   #22D3C3;
+  --brand-light:  rgba(26,188,172,0.12);
+  --brand-mid:    rgba(26,188,172,0.18);
+
+  --green:     #3ECF8E; --green-bg: rgba(62,207,142,0.1);
+  --red:       #F87171; --red-bg:   rgba(248,113,113,0.1);
+  --amber:     #FBBF24; --amber-bg: rgba(251,191,36,0.1);
+  --blue:      #60A5FA; --blue-bg:  rgba(96,165,250,0.1);
+  --purple:    #A78BFA; --purple-bg:rgba(167,139,250,0.1);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow:    0 4px 16px rgba(0,0,0,0.4);
+}
+
+/* ══════════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100vh; overflow: hidden; transition: background 0.2s, color 0.2s; }
+input, select, textarea, button { font-family: var(--font); }
+
+/* ══════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════ */
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ══════════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════════ */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 58px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.topbar-left  { display: flex; align-items: center; gap: 14px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+/* Logo */
+.brand-logo {
+  display: flex; align-items: center; gap: 8px;
+  text-decoration: none;
+}
+.brand-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, #1ABCAC 0%, #0F9488 100%);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.brand-icon svg { width: 18px; height: 18px; color: #fff; }
+.brand-name { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.brand-name span { color: var(--brand); }
+.topbar-divider { width: 1px; height: 20px; background: var(--border2); }
+.topbar-title { font-size: 12px; font-weight: 500; color: var(--text3); }
+
+/* Badge */
+.conn-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 500; font-family: var(--mono);
+  background: var(--brand-light); color: var(--brand);
+  border: 1px solid rgba(26,188,172,0.25);
+}
+.conn-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brand); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text2);
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn:hover   { background: var(--surface3); color: var(--text); }
+.btn:disabled{ opacity: 0.45; cursor: not-allowed; }
+.btn svg     { width: 13px; height: 13px; flex-shrink: 0; }
+.btn-brand   { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn-brand:hover { background: var(--brand-dark); border-color: var(--brand-dark); color: #fff; }
+.btn-ghost   { background: transparent; border-color: transparent; color: var(--text3); padding: 7px 10px; }
+.btn-ghost:hover { background: var(--surface2); color: var(--text2); border-color: transparent; }
+
+/* Theme toggle */
+.theme-toggle {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); border: 1px solid var(--border);
+  cursor: pointer; color: var(--text3); transition: all 0.15s;
+}
+.theme-toggle:hover { background: var(--surface3); color: var(--text2); }
+.theme-toggle svg { width: 15px; height: 15px; }
+
+/* Sync info */
+.sync-info { font-size: 11px; color: var(--text3); font-family: var(--mono); white-space: nowrap; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════
+   SECTION TABS (Atrasos vs Outros)
+══════════════════════════════════════════ */
+.section-tabs {
+  display: flex; align-items: center; gap: 4px;
+  padding: 10px 24px 0;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.section-tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid transparent; border-bottom: none;
+  background: transparent; color: var(--text3);
+  transition: all 0.15s; position: relative; bottom: -1px;
+}
+.section-tab:hover { color: var(--text2); background: var(--surface2); }
+.section-tab.active {
+  background: var(--surface); color: var(--text);
+  border-color: var(--border); border-bottom-color: var(--surface);
+}
+.section-tab.active.tab-atrasos { color: var(--red); }
+.section-tab.active.tab-outros  { color: var(--brand); }
+.section-chip {
+  font-size: 10px; font-weight: 600; font-family: var(--mono);
+  padding: 1px 7px; border-radius: 10px;
+}
+.section-tab.active.tab-atrasos .section-chip { background: var(--red-bg); color: var(--red); }
+.section-tab.active.tab-outros  .section-chip { background: var(--brand-light); color: var(--brand); }
+.section-tab:not(.active) .section-chip { background: var(--surface3); color: var(--text3); }
+
+/* ══════════════════════════════════════════
+   CARTEIRA TABS
+══════════════════════════════════════════ */
+.carteira-tabs {
+  display: flex; align-items: center; gap: 0;
+  padding: 0 24px;
+  background: var(--surface2); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; overflow-x: auto; scrollbar-width: none;
+}
+.carteira-tabs::-webkit-scrollbar { display: none; }
+.carteira-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 14px; font-size: 12px; font-weight: 500;
+  color: var(--text3); cursor: pointer;
+  border: none; background: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: all 0.13s;
+  white-space: nowrap;
+}
+.carteira-tab:hover { color: var(--text2); }
+.carteira-tab.active { color: var(--brand-dark); border-bottom-color: var(--brand); font-weight: 600; }
+[data-theme="dark"] .carteira-tab.active { color: var(--brand); }
+.carteira-count {
+  font-size: 10px; font-family: var(--mono);
+  padding: 1px 6px; border-radius: 8px;
+  background: var(--surface3); color: var(--text3);
+}
+.carteira-tab.active .carteira-count { background: var(--brand-mid); color: var(--brand-dark); }
+[data-theme="dark"] .carteira-tab.active .carteira-count { color: var(--brand); }
+
+/* ══════════════════════════════════════════
+   SYNC BANNER
+══════════════════════════════════════════ */
+.sync-banner {
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 24px;
+  background: var(--brand-light); border-bottom: 1px solid rgba(26,188,172,0.2);
+  font-size: 12px; color: var(--brand-dark); flex-shrink: 0;
+}
+[data-theme="dark"] .sync-banner { color: var(--brand); }
+.sync-banner.visible { display: flex; }
+.sync-progress-track { flex: 1; max-width: 180px; height: 3px; background: rgba(26,188,172,0.2); border-radius: 2px; overflow: hidden; }
+.sync-progress-fill  { height: 100%; background: var(--brand); border-radius: 2px; transition: width 0.35s; }
+.sync-pct { font-family: var(--mono); font-size: 11px; color: var(--brand); }
+
+/* ══════════════════════════════════════════
+   CONTENT
+══════════════════════════════════════════ */
+.content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.section-panel { display: none; flex-direction: column; height: 100%; }
+.section-panel.active { display: flex; }
+.carteira-panel { display: none; flex-direction: column; height: 100%; }
+.carteira-panel.active { display: flex; }
+
+/* ══════════════════════════════════════════
+   TABLE TOOLBAR
+══════════════════════════════════════════ */
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px; flex-shrink: 0; gap: 8px; flex-wrap: wrap;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.toolbar-left  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; }
+
+.search-wrap { position: relative; }
+.search-wrap .ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--text3); pointer-events: none; }
+.search-input {
+  padding: 7px 12px 7px 32px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-size: 12px;
+  width: 210px; outline: none; transition: border-color 0.15s;
+}
+.search-input::placeholder { color: var(--text3); }
+.search-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-mid); }
+
+.filter-select {
+  padding: 7px 10px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text2); font-size: 12px; outline: none; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.filter-select:focus { border-color: var(--brand); }
+
+/* Stats pills */
+.progress-wrap { display: flex; align-items: center; gap: 8px; }
+.progress-track { width: 80px; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.progress-fill  { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.3s; }
+.progress-pct   { font-size: 11px; font-family: var(--mono); color: var(--text3); min-width: 30px; text-align: right; }
+.stat-pill { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-family: var(--mono); }
+.stat-pill.green { background: var(--green-bg); color: var(--green); }
+.stat-pill.red   { background: var(--red-bg);   color: var(--red);   }
+.stat-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* Outros report type selector */
+.tipo-selector { display: flex; align-items: center; gap: 4px; }
+.tipo-btn {
+  padding: 5px 12px; border-radius: var(--radius-xs);
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text3); transition: all 0.13s;
+}
+.tipo-btn:hover { background: var(--surface3); color: var(--text2); }
+.tipo-btn.active-vencidos     { background: var(--amber-bg); color: var(--amber); border-color: rgba(245,158,11,0.3); }
+.tipo-btn.active-desatualizados{ background: var(--blue-bg);  color: var(--blue);  border-color: rgba(59,130,246,0.3); }
+.tipo-btn.active-marketplace  { background: var(--purple-bg);color: var(--purple);border-color: rgba(139,92,246,0.3); }
+
+/* ══════════════════════════════════════════
+   TABLE
+══════════════════════════════════════════ */
+.table-wrap {
+  flex: 1; overflow: auto; padding: 0 24px 24px;
+  scrollbar-width: thin; scrollbar-color: var(--surface3) transparent;
+}
+.table-wrap::-webkit-scrollbar       { width: 6px; height: 6px; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+thead { position: sticky; top: 0; z-index: 10; }
+thead th {
+  background: var(--surface2); padding: 9px 12px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text3);
+  border-top: 1px solid var(--border); border-bottom: 2px solid var(--border2);
+  white-space: nowrap; text-align: left;
+  position: sticky; top: 0; z-index: 5;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+}
+thead th:first-child { border-left: 1px solid var(--border); border-radius: var(--radius-xs) 0 0 var(--radius-xs); padding-left: 16px; }
+thead th:last-child  { border-right: 1px solid var(--border); border-radius: 0 var(--radius-xs) var(--radius-xs) 0; }
+
+tbody tr { transition: background 0.1s; }
+tbody tr:hover td { background: var(--surface2); }
+tbody td {
+  padding: 11px 12px; font-size: 13px; color: var(--text2);
+  border-bottom: 1px solid var(--border); vertical-align: middle;
+  background: var(--surface);
+}
+tbody td:first-child { padding-left: 16px; }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Cell types */
+.cell-title { font-weight: 600; color: var(--text); font-size: 13px; max-width: 260px; }
+.cell-sub   { font-size: 11px; color: var(--text3); font-weight: 400; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; font-family: var(--mono); white-space: nowrap;
+}
+.b-atrasos        { background: var(--red-bg);    color: var(--red); }
+
+/* ── Fase badges — cores do Pipefy ── */
+.fase-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 500;
+  font-family: var(--font); white-space: nowrap;
+  border-left: 3px solid currentColor;
+}
+/* Pipe 302656757 */
+.fase-backlogpedidos              { background: #E8EEF8; color: #1A3A6B; border-color: #1A3A6B; }
+.fase-standby                       { background: #FCE8F3; color: #9B1B6E; border-color: #D63E9B; }
+.fase-doing                         { background: #EDE8F8; color: #4A1D8C; border-color: #6B3AC7; }
+.fase-enviadoparaclientesolicitante { background: #FFFBE0; color: #7A5A00; border-color: #E6C229; }
+.fase-enviadoparacliente            { background: #FFFBE0; color: #7A5A00; border-color: #E6C229; }
+.fase-backlogsolicitaesdenegativao  { background: #FCE8E8; color: #8B1A1A; border-color: #D63E3E; }
+.fase-enviadosolicitaodeneg         { background: #FEF0E0; color: #7A3A00; border-color: #E07820; }
+.fase-csnegativaes                  { background: #FFFBE0; color: #6B5A00; border-color: #C9B80A; }
+.fase-cadastrodemarketplace         { background: #E0F5F4; color: #0A5C57; border-color: #1ABCAC; }
+/* Pipe 302483272 */
+.fase-7dias         { background: #FEF0E0; color: #7A3A00; border-color: #E07820; }
+.fase-14dias        { background: #FFF3CD; color: #7A5000; border-color: #D4920A; }
+.fase-1ms           { background: #FFF8E0; color: #7A5A00; border-color: #C9940A; }
+.fase-1mes          { background: #FFF8E0; color: #7A5A00; border-color: #C9940A; }
+.fase-2meses        { background: #FFECD0; color: #7A3500; border-color: #D46010; }
+.fase-3meses        { background: #FFE0C8; color: #7A2800; border-color: #D04010; }
+.fase-6meses        { background: #FFD0C8; color: #7A1A00; border-color: #CC3010; }
+.fase-9meses        { background: #FFC8C8; color: #6B1010; border-color: #C02020; }
+.fase-12meses       { background: #FFBCBC; color: #600808; border-color: #B41414; }
+.fase-maisde12meses { background: #FFB0B0; color: #580000; border-color: #A80000; }
+.fase-renovao       { background: #E8F8E8; color: #1A5C1A; border-color: #2E9E2E; }
+.fase-solicitaodechurn { background: #F0E8FF; color: #4A1A8C; border-color: #7B3AC7; }
+/* Default */
+.fase-badge { background: var(--surface3); color: var(--text2); border-color: var(--border2); }
+.b-vencidos       { background: var(--amber-bg);  color: var(--amber); }
+.b-desatualizados { background: var(--blue-bg);   color: var(--blue); }
+.b-marketplace    { background: var(--purple-bg); color: var(--purple); }
+.b-phase          { background: var(--surface3);  color: var(--text2); font-size: 10px; }
+
+/* Days badge */
+.days-badge { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+.days-critical { color: var(--red); }
+.days-warn     { color: var(--amber); }
+.days-ok       { color: var(--text3); }
+
+/* ══════════════════════════════════════════
+   EDITABLE CELLS
+══════════════════════════════════════════ */
+.select-cell {
+  padding: 5px 8px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius-xs);
+  color: var(--text); font-size: 12px; font-weight: 500;
+  outline: none; cursor: pointer; transition: all 0.13s;
+}
+.select-cell:hover  { border-color: var(--border2); }
+.select-cell:focus  { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-mid); }
+.select-cell.sim    { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: #059669; font-weight: 700; }
+.select-cell.nao    { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.25); color: #DC2626; }
+.select-cell.analista { min-width: 120px; }
+
+.obs-cell {
+  width: 100%; min-width: 180px; padding: 5px 8px;
+  background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius-xs); color: var(--text); font-size: 12px;
+  outline: none; resize: none; transition: all 0.13s;
+}
+.obs-cell::placeholder { color: var(--text3); }
+.obs-cell:hover { border-color: var(--border); background: var(--surface2); }
+.obs-cell:focus { border-color: var(--brand); background: var(--surface2); box-shadow: 0 0 0 3px var(--brand-mid); }
+
+/* ══════════════════════════════════════════
+   SAVING TOAST
+══════════════════════════════════════════ */
+.save-toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 999;
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border2);
+  box-shadow: var(--shadow); font-size: 12px; font-family: var(--mono);
+  color: var(--text2); opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+.save-toast.show { opacity: 1; }
+.save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
+.save-dot.saved { background: var(--green); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.save-dot:not(.saved) { animation: blink 1s infinite; }
+
+/* ══════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 64px 24px; gap: 12px;
+  color: var(--text3); text-align: center;
+}
+.empty-state .empty-icon {
+  width: 48px; height: 48px; border-radius: var(--radius);
+  background: var(--surface2); display: flex; align-items: center;
+  justify-content: center; margin-bottom: 4px;
+}
+.empty-state .empty-icon svg { width: 22px; height: 22px; opacity: 0.5; }
+.empty-state p { font-size: 13px; font-weight: 500; color: var(--text2); }
+.empty-state small { font-size: 12px; }
+
+/* ══════════════════════════════════════════
+   BULK SELECTION
+══════════════════════════════════════════ */
+
+tbody tr.selected td { background: var(--brand-light) !important; }
+.bulk-bar {
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 24px; background: var(--brand); color: #fff;
+  font-size: 13px; font-weight: 600; flex-shrink: 0;
+}
+.bulk-bar.visible { display: flex; }
+.bulk-count { font-family: var(--mono); background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 20px; font-size: 12px; }
+.bulk-btn {
+  padding: 5px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15);
+  color: #fff; transition: all 0.13s;
+}
+.bulk-btn:hover { background: rgba(255,255,255,0.3); }
+.bulk-btn.danger { border-color: rgba(255,255,255,0.3); }
+.bulk-spacer { flex: 1; }
+.bulk-close { cursor: pointer; opacity: 0.7; font-size: 18px; line-height: 1; background: none; border: none; color: #fff; }
+.bulk-close:hover { opacity: 1; }
+/* ══════════════════════════════════════════
+   CONFIG MODAL
+══════════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px); padding: 20px;
+}
+.overlay.hidden { display: none; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 16px; padding: 28px; width: 500px; max-width: 100%;
+  max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow);
+}
+.modal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.modal-header .modal-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: var(--brand-light); display: flex; align-items: center; justify-content: center;
+}
+.modal-header .modal-icon svg { width: 18px; height: 18px; color: var(--brand); }
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-sub   { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.form-section { margin-bottom: 20px; }
+.form-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text3); margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.form-group { margin-bottom: 12px; }
+.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 5px; }
+.form-input {
+  width: 100%; padding: 9px 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text); font-size: 12px;
+  font-family: var(--mono); outline: none; transition: all 0.15s;
+}
+.form-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-mid); }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.5; }
+.sql-block {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  font-family: var(--mono); font-size: 11px; color: var(--text2);
+  overflow-x: auto; white-space: pre; line-height: 1.7; margin-top: 8px;
+}
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ══ SAVE TOAST ══ -->
+<div class="save-toast" id="save-toast">
+  <div class="save-dot" id="save-dot"></div>
+  <span id="save-text">Salvando…</span>
+</div>
+
+<!-- ══ CONFIG MODAL ══ -->
+<div class="overlay hidden" id="config-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="3"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M14.36 4.22l-1.42 1.42M4.22 14.36l1.42 1.42"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Configuração</div>
+        <div class="modal-sub">Conecte o Supabase e o Pipefy para começar</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Supabase — banco de dados</div>
+      <div class="form-group">
+        <label class="form-label">URL do Projeto</label>
+        <input class="form-input" id="supa-url" placeholder="https://xxxx.supabase.co" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Anon Key (Legacy)</label>
+        <input class="form-input" id="supa-key" placeholder="eyJhbGci…" />
+        <div class="form-hint">Settings → API Keys → Legacy anon, service_role API keys → anon public</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Pipefy — fonte de dados</div>
+      <div class="form-group">
+        <label class="form-label">Token de Acesso</label>
+        <input class="form-input" id="pipefy-token" type="password" placeholder="eyJhbGciOiJIUzUxMiJ9…" />
+        <div class="form-hint">Seu perfil → Personal access tokens</div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Tabelas Supabase (execute antes de conectar)</div>
+      <div class="form-hint">Cole no SQL Editor do seu projeto:</div>
+      <div class="sql-block">CREATE TABLE IF NOT EXISTS auditoria_controles (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  carteira text, card_id text UNIQUE,
+  finalizado text DEFAULT 'Não',
+  analista text DEFAULT '',
+  obs text DEFAULT '',
+  updated_at timestamptz DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS auditoria_cards (
+  id text PRIMARY KEY,
+  titulo text, tipo text, carteira text,
+  responsavel text, fase text,
+  data_vencimento text, dias_atraso int,
+  solicitacao text, concorrente text, link_pipefy text,
+  pipe_id text, report_id text,
+  synced_at timestamptz DEFAULT now()
+);</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="useLocalMode()">Só localStorage</button>
+      <button class="btn btn-brand" onclick="connectAll()">Conectar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COMMENT MODAL ══ -->
+<div class="overlay hidden" id="comment-modal">
+  <div class="modal" style="width:520px">
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2H6l-4 4V5z"/></svg>
+      </div>
+      <div>
+        <div class="modal-title">Publicar Comentário</div>
+        <div class="modal-sub" id="comment-card-name">—</div>
+      </div>
+    </div>
+
+    <!-- Template selector -->
+    <div class="form-group">
+      <label class="form-label">Tipo de comentário</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="template-btns">
+        <button type="button" onclick="applyTemplate('livre')"
+          class="tpl-btn active" data-tpl="livre"
+          style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--brand);color:#fff;font-family:var(--font);transition:all 0.15s">
+          ✏️ Livre
+        </button>
+        <button type="button" onclick="applyTemplate('monitoramento')"
+          class="tpl-btn" data-tpl="monitoramento"
+          style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--font);transition:all 0.15s">
+          👁️ Monitoramento
+        </button>
+        <button type="button" onclick="applyTemplate('parceria')"
+          class="tpl-btn" data-tpl="parceria"
+          style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--font);transition:all 0.15s">
+          🤝 Verificação de Parceria
+        </button>
+        <button type="button" onclick="applyTemplate('visibilidade')"
+          class="tpl-btn" data-tpl="visibilidade"
+          style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--font);transition:all 0.15s">
+          📢 Visibilidade
+        </button>
+        <button type="button" onclick="applyTemplate('sucesso')"
+          class="tpl-btn" data-tpl="sucesso"
+          style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-family:var(--font);transition:all 0.15s">
+          ✅ Sucesso
+        </button>
+      </div>
+    </div>
+
+    <!-- Template hint -->
+    <div id="tpl-hint" style="display:none;margin-top:-8px;margin-bottom:4px;padding:8px 12px;background:var(--brand-light);border-radius:var(--radius-sm);font-size:11px;color:var(--brand-dark);line-height:1.6"></div>
+
+    <div class="form-group">
+      <label class="form-label">Comentário do Analista</label>
+      <textarea id="comment-text" rows="5" placeholder="Escreva o comentário aqui…"
+        style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:var(--font);outline:none;resize:vertical;transition:border-color 0.15s;"
+        onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 3px var(--brand-mid)'"
+        onblur="this.style.borderColor='';this.style.boxShadow=''"></textarea>
+    </div>
+
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label">Preview do comentário final</label>
+      <div id="comment-preview" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.6;font-family:var(--mono);min-height:60px"></div>
+    </div>
+
+    <div class="form-group" style="margin-top:12px;margin-bottom:0">
+      <label class="form-label" style="display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="1"/><path d="M1 7h14M5 1v4M11 1v4"/></svg>
+        Novo vencimento <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span>
+      </label>
+      <input type="date" id="comment-due-date"
+        style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:all 0.15s;width:200px"
+        onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 3px var(--brand-mid)'"
+        onblur="this.style.borderColor='';this.style.boxShadow=''"/>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Se preenchido, atualiza o vencimento no pipe Atendimento - Atividades do Cliente</div>
+    </div>
+
+    <div class="form-group" style="margin-top:12px;margin-bottom:0">
+      <label class="form-label" style="display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3l5 5-5 5"/></svg>
+        Mover para fase <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span>
+      </label>
+      <select id="comment-phase" style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:var(--font);outline:none;min-width:260px;cursor:pointer;transition:all 0.15s"
+        onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 3px var(--brand-mid)'"
+        onblur="this.style.borderColor='';this.style.boxShadow=''">
+        <option value="">— Manter fase atual —</option>
+      </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Se selecionado, move o card no pipe Atendimento - Atividades do Cliente</div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zM8 5v4M8 11v1"/></svg>
+      Comentário publicado nos dois pipes automaticamente
+    </div>
+
+    <div id="comment-status" style="display:none;margin-top:10px;padding:8px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:500"></div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeCommentModal()">Cancelar</button>
+      <button class="btn btn-brand" id="comment-submit-btn" onclick="submitComment()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l12-6-6 12-2-4-4-2z"/></svg>
+        Publicar nos dois pipes
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-logo">
+        <div class="brand-icon">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 10 Q4 4 10 4 Q16 4 16 10 Q16 14 12 15.5 L10 17 L8 15.5 Q4 14 4 10Z" fill="rgba(255,255,255,0.3)" stroke="white"/>
+            <path d="M7 10 Q7 7 10 7 Q13 7 13 10" stroke="white" fill="none"/>
+          </svg>
+        </div>
+        <span class="brand-name">Branddi <span>·</span> Auditoria</span>
+      </div>
+      <div class="topbar-divider"></div>
+      <span class="topbar-title">Atendimento</span>
+      <div class="conn-badge" id="conn-badge">
+        <div class="conn-dot"></div>
+        <span id="conn-text">offline</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="sync-info" id="last-sync">—</span>
+      <button class="btn" id="sync-btn" onclick="syncPipefy()">
+        <svg id="sync-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4s1-3 7-3a7 7 0 016.5 4.4"/><path d="M15 12s-1 3-7 3A7 7 0 011.5 10.6"/><polyline points="1,1 1,4 4,4"/><polyline points="15,15 15,12 12,12"/></svg>
+        Sincronizar
+      </button>
+      <button class="btn" onclick="clearAndSync()" title="Limpar cache e sincronizar tudo do zero">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3,6 3,3 6,3"/><polyline points="13,10 13,13 10,13"/><path d="M3 3a7 7 0 0110 1M13 13a7 7 0 01-10-1"/></svg>
+        Limpar cache
+      </button>
+      <button class="btn" onclick="diagFases()" title="Ver fases do Pipefy no Console">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5"/><path d="M8 5v3l2 2"/></svg>
+        Ver Fases
+      </button>
+      <button class="btn" onclick="openConfig()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M11.54 3.05l-1.41 1.41M3.05 11.54l1.41 1.41"/></svg>
+        Configurar
+      </button>
+      <button class="btn" onclick="sendGChatNow()" id="gchat-btn" title="Enviar resumo ao Google Chat">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V4z"/></svg>
+        Enviar Resumo
+      </button>
+      <button class="btn btn-brand" onclick="exportCSV()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2M8 2v8M5 7l3 3 3-3"/></svg>
+        Exportar
+      </button>
+      <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Alternar tema">
+        <svg id="theme-icon-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="display:none"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
+        <svg id="theme-icon-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 10A6 6 0 016 2.5a6 6 0 100 11 6 6 0 007.5-3.5z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- SYNC BANNER -->
+  <div class="sync-banner" id="sync-banner">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="spin"><path d="M1 4s1-3 7-3a7 7 0 016.5 4.4"/><path d="M15 12s-1 3-7 3A7 7 0 011.5 10.6"/><polyline points="1,1 1,4 4,4"/><polyline points="15,15 15,12 12,12"/></svg>
+    <span id="sync-text">Conectando…</span>
+    <div class="sync-progress-track"><div class="sync-progress-fill" id="sync-fill" style="width:0%"></div></div>
+    <span class="sync-pct" id="sync-pct">0%</span>
+  </div>
+
+  <!-- SECTION TABS -->
+  <!-- BULK ACTION BAR -->
+  <div class="bulk-bar" id="bulk-bar">
+    <span class="bulk-count" id="bulk-count">0</span>
+    <span>cards selecionados</span>
+    <select id="bulk-analista" class="filter-select" style="background:rgba(255,255,255,0.2);border-color:rgba(255,255,255,0.4);color:#fff;font-weight:600">
+      <option value="">— Definir Analista —</option>
+    </select>
+    <button class="bulk-btn" onclick="bulkSetFinalizado('Sim')">✓ Marcar como Sim</button>
+    <button class="bulk-btn" onclick="bulkSetFinalizado('Não')">✗ Marcar como Não</button>
+    <button class="bulk-btn" onclick="bulkApplyAnalista()">Aplicar Analista</button>
+    <div class="bulk-spacer"></div>
+    <button class="bulk-close" onclick="clearSelection()">✕</button>
+  </div>
+
+  <div class="section-tabs">
+    <button class="section-tab tab-atrasos active" id="stab-atrasos" onclick="switchSection('atrasos')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3.5l2 2"/></svg>
+      Tarefas em Atraso
+      <span class="section-chip" id="chip-atrasos">0</span>
+    </button>
+    <button class="section-tab tab-atrasos" id="stab-negacoes" onclick="switchSection('negacoes')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2H6L2 6v4l4 4h4l4-4V6l-4-4z"/><path d="M8 6v3M8 11v.5"/></svg>
+      CS - Negativações
+      <span class="section-chip" id="chip-negacoes">0</span>
+    </button>
+    <button class="section-tab tab-outros" id="stab-outros" onclick="switchSection('outros')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+      Atrasos - CS Front
+      <span class="section-chip" id="chip-outros">0</span>
+    </button>
+    <button class="section-tab tab-resumo" id="stab-resumo" onclick="switchSection('resumo')">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+      Painel Analítico
+    </button>
+  </div>
+
+  <!-- CARTEIRA TABS -->
+  <div class="carteira-tabs" id="carteira-tabs"></div>
+
+  <!-- CONTENT -->
+  <main class="content" id="content"></main>
+
+  <!-- RESUMO PANEL -->
+  <div id="resumo-panel" style="display:none;flex:1;overflow:auto;padding:24px;flex-direction:column;gap:24px;background:var(--bg)"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// CONFIG — credenciais pré-configuradas
+// ════════════════════════════════════════
+const DEFAULT_CONFIG = {
+  url:    'https://lcwxsikveyudtwiutjra.supabase.co',
+  key:    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxjd3hzaWt2ZXl1ZHR3aXV0anJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NDg0NTksImV4cCI6MjA5MzEyNDQ1OX0.rHfsDoZ6KZJKQtlsuZAHgWgho7S1frRslzYeAXTTrRA',
+  pipefy: 'eyJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJQaXBlZnkiLCJpYXQiOjE3Nzc1NjI1NjEsImp0aSI6ImM0MjVmZGZhLTlhOWEtNDliYi1hMmJmLTc1MjczZDZhZTk3NiIsInN1YiI6MzAyMTM4MTkwLCJ1c2VyIjp7ImlkIjozMDIxMzgxOTAsImVtYWlsIjoiYXRlbmRpbWVudG9AYnJhbmRtb25pdG9yLmNvbS5iciJ9LCJ1c2VyX3R5cGUiOiJhdXRoZW50aWNhdGVkIn0.hgy7Fe8hur17qoP56j34xAi4MywCwzrOT6KHIdZPOcKkqR9I8816Fqo6b2QJnIp0kQEP-dzvYqqpb0OWAseUAw',
+};
+
+const CARTEIRAS = ['Black 1','Black 2','Black 3','Platinum 1','Platinum 2','Titanium 1','Titanium 2','Sem Carteira'];
+const ANALISTAS = ['Julia R.','Julia C.','Laura','Aline','Amaore','Ana Paula','Ana Vitória','Everton','Giovanna','Keila','Lívia','Maria Eduarda','Railanne','Yasmim','Helen','Karoline'];
+
+const TIPOS_CONFIG = {
+  // Atrasos: fases StandBy + Doing + Enviado para Cliente/Solicitante
+  // Filtro: vencimento <= amanhã (hoje + 1 dia)
+  'Atrasos': {
+    reportId:'300968750', pipeId:'302656757', section:'atrasos', color:'atrasos',
+    phaseIds: ['316705020','320305552','319202807'], // StandBy, Doing, Enviado p/Cliente — Backlog/Pedidos added by Ver Fases
+    fases: null, excludeFases: null,
+    dateFilter: () => {
+      // Inclui apenas até o final do dia vigente (23:59:59)
+      const d = new Date(); d.setHours(23,59,59,999);
+      return d;
+    },
+    requireDate: false,
+  },
+  // Vencidos na Fase: vencimento <= hoje (ou desconhecido)
+  // Exclui: Churn, Mais de 12 meses, StandBy
+  'Vencidos na Fase': {
+    reportId:'300823144', pipeId:'302483272', section:'outros', color:'vencidos',
+    // Fases válidas (hardcoded do Ver Fases): exclui StandBy, Pós OnBoarding, Mais de 12 meses, Renovação, Churn
+    phaseIds: ['319903875','315618617','315618613','316630051','315618614','315618615','315618616','317119747','317119748','333615572'],
+    fases: null,
+    excludeFases: ['churn'], // fallback client-side — exclui Churn puro (não Em reversão)
+    dateFilter: () => {
+      const d = new Date(); d.setHours(23,59,59,999); return d;
+    },
+    strictBefore: false,
+    requireDate: true,
+  },
+  // Desatualizados: o relatório do Pipefy já filtra por último comentário
+  // Buscamos todos os cards do relatório sem filtro de data adicional
+  'Desatualizados': {
+    reportId:'300822933', pipeId:'302483272', section:'outros', color:'desatualizados',
+    phaseIds: null, // fetch ALL cards from pipe, filter by last comment
+    fases: null,
+    excludeFases: ['churn','solicitação de churn'],
+    dateFilter: null,
+    // Cutoff: same day last month (e.g. today 06/05 → cutoff 06/04)
+    lastCommentCutoff: () => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 1);
+      d.setHours(23,59,59,999);
+      return d;
+    },
+    requireDate: false,
+  },
+  // Cadastro de Marketplace: vencimento <= hoje (ou desconhecido)
+  'Cadastro de Marketplace': {
+    reportId:'301049827', pipeId:'302656757', section:'outros', color:'marketplace',
+    phaseIds: ['342956092'], // updated by Ver Fases
+    fases: null, excludeFases: null,
+    dateFilter: () => {
+      // Apenas cards com vencimento até o final do dia vigente
+      const d = new Date(); d.setHours(23,59,59,999); return d;
+    },
+    requireDate: false, // cards sem data continuam aparecendo
+  },
+  // CS - Negativações: fase ID 342038111 (confirmado)
+  'CS - Negativações': {
+    reportId:'301016771', pipeId:'302656757', section:'negacoes', color:'atrasos',
+    phaseIds: ['342038111'], // CS - Negativações phase (272 cards)
+    fases: null, excludeFases: null,
+    dateFilter: () => {
+      // Apenas cards com vencimento até o final do dia vigente
+      const d = new Date(); d.setHours(23,59,59,999); return d;
+    },
+    requireDate: false, // cards sem data também aparecem
+  },
+};
+
+const OUTROS_TIPOS = ['Vencidos na Fase','Desatualizados','Cadastro de Marketplace'];
+const FIELD_CARTEIRA = ['categoria do cliente','carteira','wallet','portfolio','portfólio'];
+const FIELD_RESP     = ['responsável','responsavel','assignee','owner'];
+const FIELD_VENC     = ['data de vencimento','vencimento','due_date','prazo'];
+const FIELD_FASE     = ['fase','phase','stage','etapa'];
+
+// State
+let supabaseClient = null;
+let pipefyToken    = '';
+let currentSection = 'atrasos';
+let currentCarteira = CARTEIRAS[0];
+let currentOutroTipo = ''; // '' = show all types
+let allData     = {}; // `${section}_${carteira}` -> [cards]
+let controlData = {}; // carteira -> { cardId -> {finalizado,analista,obs} }
+CARTEIRAS.forEach(c => { controlData[c] = {}; });
+['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+function init() {
+  applyTheme(localStorage.getItem('theme') || 'light');
+  buildCarteirasTabs();
+  buildPanels();
+  switchSection('atrasos');
+  switchCarteira(CARTEIRAS[0]);
+
+  // Merge saved config with defaults
+  const cfg = loadCfg() || {};
+  const url    = cfg.url    || DEFAULT_CONFIG.url    || '';
+  const key    = cfg.key    || DEFAULT_CONFIG.key    || '';
+  const pipefy = cfg.pipefy || DEFAULT_CONFIG.pipefy || '';
+
+  document.getElementById('supa-url').value     = url;
+  document.getElementById('supa-key').value     = key;
+  document.getElementById('pipefy-token').value = pipefy;
+
+  if (url && key) {
+    // Hide modal immediately, connect in background
+    document.getElementById('config-modal').classList.add('hidden');
+    connectAll(true);
+  } else {
+    document.getElementById('config-modal').classList.remove('hidden');
+  }
+}
+
+function loadCfg() {
+  try { const s = localStorage.getItem('auditoria_cfg'); return s ? JSON.parse(s) : null; } catch(e){ return null; }
+}
+
+// ════════════════════════════════════════
+// THEME
+// ════════════════════════════════════════
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+  document.getElementById('theme-icon-sun').style.display  = t === 'dark'  ? 'block' : 'none';
+  document.getElementById('theme-icon-moon').style.display = t === 'light' ? 'block' : 'none';
+}
+function toggleTheme() {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+
+// ════════════════════════════════════════
+// CONNECT
+// ════════════════════════════════════════
+async function connectAll(silent = false) {
+  const url    = document.getElementById('supa-url').value.trim();
+  const key    = document.getElementById('supa-key').value.trim();
+  const pipefy = document.getElementById('pipefy-token').value.trim();
+  if (url && key) localStorage.setItem('auditoria_cfg', JSON.stringify({ url, key, pipefy }));
+  if (pipefy) pipefyToken = pipefy;
+
+  // Always hide modal first
+  document.getElementById('config-modal').classList.add('hidden');
+
+  if (url && key) {
+    try {
+      supabaseClient = window.supabase.createClient(url, key);
+      await loadSupabaseControls();
+      await loadSupabaseCards();
+      setConnBadge('Supabase + Pipefy', true);
+      setupRealtime();
+    } catch(e) { console.warn('Supabase:', e.message); }
+  }
+  const hasCards = Object.values(allData).some(a => a.length > 0);
+  if (pipefyToken && !hasCards) await syncPipefy();
+  else updateLastSync();
+}
+
+function useLocalMode() {
+  document.getElementById('config-modal').classList.add('hidden');
+  try { const s = localStorage.getItem('auditoria_controles'); if (s) Object.assign(controlData, JSON.parse(s)); } catch(e){}
+  setConnBadge('Local', false);
+}
+
+function setConnBadge(text, ok) {
+  document.getElementById('conn-text').textContent = text;
+  const b = document.getElementById('conn-badge');
+  b.style.background   = ok ? 'var(--brand-light)' : 'var(--amber-bg)';
+  b.style.color        = ok ? 'var(--brand)'        : 'var(--amber)';
+  b.style.borderColor  = ok ? 'rgba(26,188,172,0.25)' : 'rgba(245,158,11,0.3)';
+  b.querySelector('.conn-dot').style.background = ok ? 'var(--brand)' : 'var(--amber)';
+}
+
+// ════════════════════════════════════════
+// PIPEFY SYNC
+// ════════════════════════════════════════
+async function syncPipefy() {
+  if (!pipefyToken) { openConfig(); return; }
+  const btn  = document.getElementById('sync-btn');
+  const icon = document.getElementById('sync-icon');
+  btn.disabled = true; icon.classList.add('spin');
+  showSyncBanner('Detectando fases…', 2);
+  // Always auto-detect phases before syncing to ensure correct phaseIds
+  await autoDetectPhases();
+  showSyncBanner('Conectando ao Pipefy…', 5);
+
+  try {
+    const tipos = Object.entries(TIPOS_CONFIG);
+    let allCards = [];
+    for (let i = 0; i < tipos.length; i++) {
+      const [nome, cfg] = tipos[i];
+      showSyncBanner(`Buscando: ${nome}…`, Math.round((i / tipos.length) * 88));
+      try {
+        const cards = await fetchCards(cfg.reportId, cfg.pipeId, nome);
+        allCards = allCards.concat(cards);
+      } catch(e) { console.warn(`Erro ${nome}:`, e.message); }
+    }
+
+    showSyncBanner('Processando…', 92);
+    processCards(allCards);
+    showSyncBanner('Salvando…', 96);
+    if (supabaseClient) await saveCardsToSupabase(allCards);
+    showSyncBanner('Concluído!', 100);
+    setTimeout(hideSyncBanner, 1500);
+    localStorage.setItem('auditoria_last_sync', new Date().toISOString());
+    updateLastSync();
+    rebuildAll();
+  } catch(e) {
+    showSyncBanner('Erro: ' + e.message, 0);
+    setTimeout(hideSyncBanner, 3000);
+  } finally {
+    btn.disabled = false; icon.classList.remove('spin');
+  }
+}
+
+async function fetchCards(reportId, pipeId, tipoNome) {
+  const cfg = TIPOS_CONFIG[tipoNome];
+  let allEdges = [];
+
+  // For Desatualizados: try report queries first, fallback to updated_at filter
+  if (tipoNome === 'Desatualizados') {
+    const nodeFields = 'id title due_date current_phase { name } assignees { name } fields { name value field { id label } }';
+    const attempts = [
+      { key: 'reportSearch', q: `{ reportSearch(reportId: "${reportId}") { edges { node { ${nodeFields} } } } }` },
+      { key: 'pipeReport',   q: `{ pipeReport(reportId: "${reportId}") { edges { node { ${nodeFields} } } } }` },
+      { key: 'pipe_report',  q: `{ pipe_report(id: "${reportId}") { edges { node { ${nodeFields} } } } }` },
+    ];
+    for (const attempt of attempts) {
+      try {
+        const r = await pipefyGQL(attempt.q);
+        if (r?.errors?.length) { console.warn('[Desatualizados]', attempt.key, 'failed:', r.errors[0].message); continue; }
+        const edges = r?.data?.[attempt.key]?.edges;
+        if (edges?.length) {
+          console.log('[Desatualizados]', attempt.key, 'SUCCESS:', edges.length, 'cards');
+          return edges.map(e => {
+            const n = e?.node; if (!n) return null;
+            const cf = {}; (n.fields||[]).forEach(f => { cf[(f.field?.label||f.name||'').toLowerCase()] = f.value; });
+            let cs = ''; for (const k of FIELD_CARTEIRA) { if (cf[k]) { cs=cf[k]; break; } }
+            if (!cs) for (const [k,v] of Object.entries(cf)) { if (k.includes('categoria')||k.includes('carteira')) { cs=v; break; } }
+            try { const p=JSON.parse(String(cs).replace(/\"/g,'"')); cs=Array.isArray(p)?p[0]:cs; } catch(e2) { cs=String(cs).replace(/[\[\]\\"]/g,'').trim(); }
+            const carteira=CARTEIRAS.find(c=>cs&&cs.toLowerCase().includes(c.toLowerCase()))||'';
+            const fase=n.current_phase?.name||'';
+            if (['churn','solicitação de churn'].some(x=>fase.toLowerCase().includes(x))) return null;
+            const link=cf['link do card no pipefy']||'https://app.pipefy.com/open-cards/'+n.id;
+            return { id:String(n.id), titulo:n.title||'Card '+n.id, tipo:tipoNome,
+              carteira, responsavel:'', fase, data_vencimento:n.due_date?fmtDate(n.due_date):'', dias_atraso:0,
+              solicitacao:cf['solicitacao']||cf['solicitação']||'', concorrente:cf['concorrente']||'',
+              link_pipefy:link, pipe_id:pipeId, report_id:reportId };
+          }).filter(Boolean);
+        }
+      } catch(e) { console.warn('[Desatualizados]', attempt.key, 'error:', e.message); }
+    }
+    console.warn('[Desatualizados] all report queries failed — using 30-day updated_at fallback');
+  }
+
+     if (cfg?.phaseIds?.length) {
+    // Fetch cards by specific phase IDs
+    for (const phaseId of cfg.phaseIds) {
+      let cursor = null, page = 0;
+      while (page < 20) {
+        const after = cursor ? `, after: "${cursor}"` : '';
+        const query = `{
+          phase(id: "${phaseId}") {
+            cards(first: 50${after}) {
+              edges {
+                node {
+                  id title due_date age
+                  current_phase { name }
+                  assignees { name }
+                  fields { name value field { id label } }
+                }
+              }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+        }`;
+        const resp = await pipefyGQL(query);
+        const batch = resp?.data?.phase?.cards;
+        if (!batch?.edges?.length) break;
+        allEdges = allEdges.concat(batch.edges);
+        if (!batch.pageInfo?.hasNextPage) break;
+        cursor = batch.pageInfo.endCursor;
+        page++;
+      }
+    }
+    console.log(`[${tipoNome}] phase-based fetch: ${allEdges.length} cards`);
+  } else {
+    // allCards by pipe with pagination
+    let cursor = null, page = 0;
+    while (page < 20) {
+      const after = cursor ? `, after: "${cursor}"` : '';
+      const query = `{ allCards(pipeId: "${pipeId}", first: 50${after}) {
+        edges { node { id title due_date age updated_at current_phase { name } assignees { name } fields { name value field { id label } } } }
+        pageInfo { hasNextPage endCursor }
+      } }`;
+      let resp, batch;
+      try {
+        resp = await pipefyGQL(query);
+      } catch(e) { console.warn(`[${tipoNome}] fetch error:`, e.message); break; }
+      if (resp?.errors?.length) { console.warn(`[${tipoNome}] error:`, resp.errors[0].message); break; }
+      batch = resp?.data?.allCards;
+      if (!batch?.edges?.length) break;
+      allEdges = allEdges.concat(batch.edges);
+      if (!batch.pageInfo?.hasNextPage) break;
+      cursor = batch.pageInfo.endCursor;
+      page++;
+    }
+    console.log(`[${tipoNome}] allCards fetch: ${allEdges.length} cards`);
+  }
+
+  if (!allEdges.length) return [];
+
+  const today = new Date();
+  return allEdges.map(e => {
+    const node = e?.node;
+    if (!node) return null;
+
+    const cf = {};
+    (node.fields||[]).forEach(f => { cf[(f.field?.label || f.name || '').toLowerCase()] = f.value; });
+
+
+
+    // Apply excludeFases — exclude Churn (unless 'Em reversão'), StandBy, Mais de 12 meses etc.
+    const faseNome = (node.current_phase?.name || '').toLowerCase().trim();
+    const cfg = TIPOS_CONFIG[tipoNome];
+    if (cfg?.excludeFases?.length) {
+      const excluido = cfg.excludeFases.some(f => {
+        const fl = f.toLowerCase().trim();
+        if (fl === 'churn') return faseNome === 'churn' || (faseNome.includes('churn') && !faseNome.includes('revers'));
+        if (fl === 'standby') return faseNome === 'standby';
+        if (fl === 'mais de 12 meses') return faseNome === 'mais de 12 meses';
+        return faseNome.includes(fl);
+      });
+      if (excluido) return null;
+    }
+
+    // Carteira
+    let cartStr = '';
+    for (const k of FIELD_CARTEIRA) { if (cf[k]) { cartStr = cf[k]; break; } }
+    if (!cartStr) {
+      for (const [k,v] of Object.entries(cf)) {
+        if (k.includes('carteira') || k.includes('categoria') || k.includes('portf')) { cartStr = v; break; }
+        if (CARTEIRAS.some(c => v && String(v).toLowerCase().includes(c.toLowerCase()))) { cartStr = v; break; }
+      }
+    }
+    try {
+      const p = JSON.parse(String(cartStr).replace(/\\"/g,'"'));
+      cartStr = Array.isArray(p) ? p[0] : (typeof p === 'string' ? p : cartStr);
+    } catch(err) {
+      cartStr = String(cartStr).replace(/[\[\]\\"]/g,'').trim();
+    }
+    const carteira = CARTEIRAS.find(c => cartStr && cartStr.toLowerCase().includes(c.toLowerCase())) || '';
+
+    // Due date & days
+    let dataVenc = '', diasAtraso = 0;
+    if (node.due_date) {
+      dataVenc   = fmtDate(node.due_date);
+      // Use ceil so a card due yesterday shows 1d, not 0d
+      const diffMs = today - new Date(node.due_date);
+      diasAtraso = diffMs > 0 ? Math.max(1, Math.ceil(diffMs / 86400000)) : 0;
+    } else {
+      for (const k of FIELD_VENC) { if (cf[k]) { dataVenc = fmtDate(cf[k]); break; } }
+      diasAtraso = node.age ? Math.floor(node.age / 1440) : 0;
+    }
+
+    let responsavel = node.assignees?.[0]?.name || '';
+    if (!responsavel) { for (const k of FIELD_RESP) { if (cf[k]) { responsavel = cf[k]; break; } } }
+
+    // Extra fields: Solicitação, Concorrente, Link
+    let solicitacao = cf['solicitação'] || cf['solicitacao'] || '';
+    // For Marketplace cards, "Marketplace" field maps to concorrente column
+    let concorrente = cf['concorrente'] || cf['competitor'] || cf['marketplace'] || '';
+    // Link: use "Link do card no Pipefy" field from the card (points to OPEC pipe)
+    let linkPipefy = cf['link do card no pipefy'] || cf['link do card no pipef'] || '';
+    if (!linkPipefy) {
+      // try partial key match
+      for (const [k,v] of Object.entries(cf)) {
+        if (k.includes('link') && k.includes('pipefy') && v && String(v).startsWith('http')) {
+          linkPipefy = v; break;
+        }
+        if (k.includes('link') && k.includes('card') && v && String(v).startsWith('http')) {
+          linkPipefy = v; break;
+        }
+      }
+    }
+
+    // Apply date filter based on report type
+    const cfg2 = TIPOS_CONFIG[tipoNome];
+
+    // Desatualizados: show only cards not updated in 30+ days
+    if (tipoNome === 'Desatualizados') {
+      if (node.updated_at) {
+        // Extract date only from string to avoid timezone issues
+        // updated_at comes as "2026-04-07T13:37:07-03:00" — slice first 10 chars = "2026-04-07"
+        const updStr = String(node.updated_at).slice(0, 10);
+        const [uy, um, ud] = updStr.split('-').map(Number);
+        const updDay = new Date(uy, um - 1, ud); // local date, no timezone
+        // Cutoff: today minus 30 days (local date)
+        const cutoff = new Date();
+        const cutoffDay = new Date(cutoff.getFullYear(), cutoff.getMonth(), cutoff.getDate() - 30);
+        if (updDay > cutoffDay) return null; // updated within 30 days — NOT desatualizado
+      }
+    }
+
+    if (cfg2?.dateFilter) {
+      const filterDate = cfg2.dateFilter();
+
+      // Filter by due_date
+      if (node.due_date) {
+        const dueDateStr = String(node.due_date).slice(0, 10);
+        const [dy, dm, dd] = dueDateStr.split('-').map(Number);
+        const dueDay = new Date(dy, dm - 1, dd);
+        const filterDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
+        // strictBefore: vencimento deve ser ANTERIOR ao dia do filtro (Vencidos na Fase)
+        // default: vencimento deve ser <= dia do filtro (Atrasos, CS Negativações)
+        if (cfg2?.strictBefore) {
+          if (dueDay >= filterDay) return null;
+        } else {
+          if (dueDay > filterDay) return null;
+        }
+      } else if (cfg2?.requireDate) {
+        return null; // no date and requireDate=true → skip
+      }
+    }
+
+    return { id: String(node.id), titulo: node.title || `Card ${node.id}`, tipo: tipoNome,
+      carteira, responsavel, fase: node.current_phase?.name || '',
+      data_vencimento: dataVenc, dias_atraso: diasAtraso,
+      solicitacao, concorrente, link_pipefy: linkPipefy,
+      pipe_id: pipeId, report_id: reportId };
+  }).filter(Boolean);
+}
+async function clearAndSync() {
+  if (!confirm('Isso vai apagar o cache atual e re-sincronizar tudo do Pipefy. Continuar?')) return;
+  showSyncBanner('Limpando cache local…', 3);
+  // Clear local state
+  ['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
+  rebuildAll();
+  // Clear Supabase in batches: fetch all IDs then delete them
+  if (supabaseClient) {
+    try {
+      showSyncBanner('Limpando cache no Supabase…', 6);
+      const { data: existing } = await supabaseClient.from('auditoria_cards').select('id');
+      if (existing?.length) {
+        const ids = existing.map(r => r.id);
+        for (let i = 0; i < ids.length; i += 100) {
+          await supabaseClient.from('auditoria_cards').delete().in('id', ids.slice(i, i+100));
+        }
+      }
+    } catch(e) { console.warn('Clear cache error:', e.message); }
+  }
+  await syncPipefy();
+}
+
+async function pipefyGQL(query) {
+  const r = await fetch('https://api.pipefy.com/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${pipefyToken}` },
+    body: JSON.stringify({ query }),
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const j = await r.json();
+  if (j.errors?.length) throw new Error(j.errors[0].message);
+  return j;
+}
+
+function fmtDate(str) {
+  if (!str) return '';
+  try {
+    const d = new Date(str.includes('T') ? str : str + 'T00:00:00');
+    return isNaN(d) ? str : d.toLocaleDateString('pt-BR');
+  } catch(e){ return str; }
+}
+
+// ════════════════════════════════════════
+// PROCESS CARDS
+// ════════════════════════════════════════
+function processCards(cards) {
+  ['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
+  let noCarteira = 0, placed = 0;
+  cards.forEach(card => {
+    const carteira = card.carteira || 'Sem Carteira';
+    const section = TIPOS_CONFIG[card.tipo]?.section || 'outros';
+    const key = `${section}_${carteira}`;
+    if (!card.carteira) noCarteira++;
+    if (allData[key]) {
+      if (!allData[key].find(x => x.id === card.id)) {
+        allData[key].push({...card, carteira});
+        placed++;
+      }
+    } else {
+      console.warn('[DEBUG] Chave inválida:', key, '| carteira:', carteira, '| tipo:', card.tipo);
+    }
+  });
+  console.log(`[processCards] Total: ${cards.length} | Colocados: ${placed} | Sem carteira: ${noCarteira}`);
+  // Log distribution
+  ['atrasos','outros'].forEach(s => {
+    const tot = CARTEIRAS.reduce((n,c) => n+(allData[`${s}_${c}`]||[]).length,0);
+    if(tot>0) console.log(`[processCards] ${s}: ${tot} cards`);
+    CARTEIRAS.forEach(c => { const n=(allData[`${s}_${c}`]||[]).length; if(n>0) console.log(`  ${c}: ${n}`); });
+  });
+  // Sort A-Z
+  Object.keys(allData).forEach(k => allData[k].sort((a,b) => a.titulo.localeCompare(b.titulo,'pt-BR')));
+}
+
+// ════════════════════════════════════════
+// SUPABASE
+// ════════════════════════════════════════
+async function loadSupabaseCards() {
+  if (!supabaseClient) return;
+  const { data } = await supabaseClient.from('auditoria_cards').select('*');
+  if (!data?.length) return;
+  processCards(data);
+  const dates = data.map(c => c.synced_at).filter(Boolean).sort();
+  if (dates.length) localStorage.setItem('auditoria_last_sync', dates[dates.length-1]);
+  updateLastSync();
+  rebuildAll();
+}
+
+async function loadSupabaseControls() {
+  if (!supabaseClient) return;
+  const { data } = await supabaseClient.from('auditoria_controles').select('*');
+  if (!data) return;
+  data.forEach(r => {
+    if (!controlData[r.carteira]) controlData[r.carteira] = {};
+    controlData[r.carteira][r.card_id] = { finalizado: r.finalizado||'Não', analista: r.analista||'', obs: r.obs||'' };
+  });
+}
+
+async function saveCardsToSupabase(cards) {
+  if (!supabaseClient || !cards.length) return;
+  const ts = new Date().toISOString();
+  // Upsert in batches of 50 (insert or update by primary key)
+  for (let i = 0; i < cards.length; i += 50) {
+    const { error } = await supabaseClient
+      .from('auditoria_cards')
+      .upsert(
+        cards.slice(i, i+50).map(c => ({...c, synced_at: ts})),
+        { onConflict: 'id', ignoreDuplicates: false }
+      );
+    if (error) console.warn('Upsert batch error:', error.message);
+  }
+  // Remove stale cards (ids not in current sync)
+  const currentIds = cards.map(c => c.id);
+  const { error: delErr } = await supabaseClient
+    .from('auditoria_cards')
+    .delete()
+    .not('id', 'in', `(${currentIds.map(id => `"${id}"`).join(',')})`);
+  if (delErr) console.warn('Stale delete error:', delErr.message);
+}
+
+function setupRealtime() {
+  if (!supabaseClient) return;
+  supabaseClient.channel('rt-ctrl')
+    .on('postgres_changes', { event:'*', schema:'public', table:'auditoria_controles' }, p => {
+      const r = p.new || {};
+      if (!r.carteira || !r.card_id) return;
+      if (!controlData[r.carteira]) controlData[r.carteira] = {};
+      if (p.eventType !== 'DELETE') controlData[r.carteira][r.card_id] = { finalizado:r.finalizado||'Não', analista:r.analista||'', obs:r.obs||'' };
+      renderCarteira(currentSection, r.carteira);
+    }).subscribe();
+}
+
+// ════════════════════════════════════════
+// SYNC BANNER
+// ════════════════════════════════════════
+function showSyncBanner(text, pct) {
+  document.getElementById('sync-banner').classList.add('visible');
+  document.getElementById('sync-text').textContent = text;
+  document.getElementById('sync-fill').style.width = pct + '%';
+  document.getElementById('sync-pct').textContent  = pct + '%';
+}
+function hideSyncBanner() { document.getElementById('sync-banner').classList.remove('visible'); }
+
+function updateLastSync() {
+  const iso = localStorage.getItem('auditoria_last_sync');
+  if (!iso) { document.getElementById('last-sync').textContent = 'Nunca sincronizado'; return; }
+  const d = new Date(iso);
+  document.getElementById('last-sync').textContent = `Sync: ${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`;
+}
+
+// ════════════════════════════════════════
+// BUILD UI
+// ════════════════════════════════════════
+function buildCarteirasTabs() {
+  const nav = document.getElementById('carteira-tabs');
+  const tabs = CARTEIRAS.map(c => `
+    <button class="carteira-tab${c===currentCarteira?' active':''}" data-c="${c}" onclick="switchCarteira('${c}')">
+      ${c} <span class="carteira-count" id="cnt-${slug(c)}">0</span>
+    </button>`).join('');
+  const todosTab = `<button class="carteira-tab outros-only${currentCarteira==='Todos'?' active':''}" data-c="Todos" id="tab-todos" onclick="switchCarteira('Todos')" style="display:none">
+      Todos <span class="carteira-count" id="cnt-todos">0</span>
+    </button>`;
+  nav.innerHTML = tabs + todosTab;
+}
+
+function buildPanels() {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  ['atrasos','negacoes','outros'].forEach(section => {
+    const sp = document.createElement('div');
+    sp.className = 'section-panel';
+    sp.id = `sp-${section}`;
+    CARTEIRAS.forEach(c => {
+      const cp = document.createElement('div');
+      cp.className = 'carteira-panel';
+      cp.id = `cp-${section}-${slug(c)}`;
+      cp.innerHTML = panelHTML(section, c);
+      sp.appendChild(cp);
+    });
+    // Aba "Todos" — apenas para seção outros
+    if (section === 'outros') {
+      const cpTodos = document.createElement('div');
+      cpTodos.className = 'carteira-panel';
+      cpTodos.id = 'cp-outros-todos';
+      cpTodos.innerHTML = panelHTML(section, 'Todos');
+      sp.appendChild(cpTodos);
+    }
+    content.appendChild(sp);
+  });
+  // Bind search/filter events
+  document.querySelectorAll('.search-input').forEach(el =>
+    el.addEventListener('input', () => renderCarteira(el.dataset.section, el.dataset.c)));
+  document.querySelectorAll('.filter-status').forEach(el =>
+    el.addEventListener('change', () => renderCarteira(el.dataset.section, el.dataset.c)));
+  document.querySelectorAll('.filter-fase').forEach(el =>
+    el.addEventListener('change', () => renderCarteira(el.dataset.section, el.dataset.c)));
+  document.querySelectorAll('.filter-solic').forEach(el =>
+    el.addEventListener('change', () => renderCarteira(el.dataset.section, el.dataset.c)));
+}
+
+function panelHTML(section, c) {
+  const s = slug(c);
+  const tipoIcons = {'Vencidos na Fase':'📅','Desatualizados':'🕐','Cadastro de Marketplace':'🛒'};
+  const tipoFilter = section === 'outros' ? `
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2)" id="tipo-sel-${s}">
+      <button class="tipo-btn${currentOutroTipo===''?' tipo-active':''}"
+        onclick="setOutroTipo('','${c}')"
+        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.15s;border:1px solid ${currentOutroTipo===''?'var(--brand)':'var(--border)'};background:${currentOutroTipo===''?'var(--brand)':'var(--surface)'};color:${currentOutroTipo===''?'#fff':'var(--text2)'}">
+        Todos
+      </button>
+      ${OUTROS_TIPOS.map(t => `<button class="tipo-btn${currentOutroTipo===t?' tipo-active':''}"
+        onclick="setOutroTipo('${t}','${c}')"
+        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.15s;border:1px solid ${currentOutroTipo===t?'var(--brand)':'var(--border)'};background:${currentOutroTipo===t?'var(--brand)':'var(--surface)'};color:${currentOutroTipo===t?'#fff':'var(--text2)'}">${tipoIcons[t]||''} ${t}</button>`).join('')}
+    </div>` : '';
+
+  return `
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4"/><path d="M10.5 10.5l3 3"/></svg>
+        <input class="search-input" data-section="${section}" data-c="${c}" placeholder="Buscar cards…"/>
+      </div>
+      <select class="filter-select filter-status" data-section="${section}" data-c="${c}">
+        <option value="">Todos os status</option>
+        <option value="Sim">✓ Finalizado</option>
+        <option value="Não">○ Pendente</option>
+      </select>
+      <select class="filter-select filter-fase" data-section="${section}" data-c="${c}">
+        <option value="">Todas as fases</option>
+      </select>
+      <select class="filter-select filter-solic" data-section="${section}" data-c="${c}">
+        <option value="">Todas as solicitações</option>
+      </select>
+      ${tipoFilter}
+    </div>
+    <div class="toolbar-right" id="stats-${section}-${s}"></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Título</th>
+        ${section==='outros'?'<th>Tipo</th>':''}
+        <th>Concorrente</th><th>Solicitação</th><th>Fase</th>
+        <th>Vencimento</th><th>Link Pipefy</th>
+        <th>Finalizado</th><th>Analista CS</th><th>Observações</th><th>Ação</th>
+      </tr></thead>
+      <tbody id="tbody-${section}-${s}"></tbody>
+    </table>
+  </div>`;
+}
+
+// ════════════════════════════════════════
+// SWITCH SECTION / CARTEIRA
+// ════════════════════════════════════════
+function switchSection(section) {
+  currentSection = section;
+  document.querySelectorAll('.section-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(`stab-${section}`)?.classList.add('active');
+
+  // Handle resumo separately
+  const resumoPanel = document.getElementById('resumo-panel');
+  const carteiraNav = document.getElementById('carteira-tabs');
+  const mainContent = document.getElementById('content');
+
+  if (section === 'resumo') {
+    mainContent.style.display = 'none';
+    carteiraNav.style.display = 'none';
+    resumoPanel.style.display = 'flex';
+    renderResumo();
+    return;
+  }
+
+  if (section === 'negacoes') {
+    currentSection = 'negacoes';
+    mainContent.style.display = '';
+    carteiraNav.style.display = '';
+    resumoPanel.style.display = 'none';
+    document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('sp-negacoes')?.classList.add('active');
+    const tabTodosNeg = document.getElementById('tab-todos');
+    if (tabTodosNeg) tabTodosNeg.style.display = 'none';
+    if (currentCarteira === 'Todos') currentCarteira = CARTEIRAS[0];
+    updateCarteiraCounts();
+    switchCarteira(currentCarteira);
+    return;
+  }
+
+  mainContent.style.display = '';
+  carteiraNav.style.display = '';
+  resumoPanel.style.display = 'none';
+
+  document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`sp-${section}`)?.classList.add('active');
+
+  // Mostrar aba "Todos" apenas na seção outros
+  const tabTodos = document.getElementById('tab-todos');
+  if (tabTodos) tabTodos.style.display = section === 'outros' ? '' : 'none';
+  if (currentCarteira === 'Todos' && section !== 'outros') currentCarteira = CARTEIRAS[0];
+
+  updateCarteiraCounts();
+  switchCarteira(currentCarteira);
+}
+
+function switchCarteira(c) {
+  currentCarteira = c;
+  document.querySelectorAll('.carteira-tab').forEach(b => b.classList.toggle('active', b.dataset.c === c));
+  // Hide all carteira panels in both sections, show active
+  document.querySelectorAll('.carteira-panel').forEach(p => p.classList.remove('active'));
+  const panelId = c === 'Todos' ? 'cp-outros-todos' : `cp-${currentSection}-${slug(c)}`;
+  const panel = document.getElementById(panelId);
+  if (panel) panel.classList.add('active');
+  renderCarteira(currentSection, c);
+}
+
+function setOutroTipo(tipo, c) {
+  currentOutroTipo = tipo;
+  // Update buttons
+  document.querySelectorAll(`#tipo-sel-${slug(c)} .tipo-btn`).forEach(b => {
+    b.className = 'tipo-btn' + (b.textContent.trim() === tipo ? ' active-'+slug2(tipo) : '');
+  });
+  renderCarteira('outros', c);
+}
+
+function slug(s)  { return s.replace(/\s/g,'-'); }
+function slug2(s) { return s.toLowerCase().replace(/\s/g,'').replace(/[^a-z]/g,''); }
+
+// ════════════════════════════════════════
+// RENDER CARTEIRA
+// ════════════════════════════════════════
+function renderCarteira(section, c) {
+  const s      = slug(c);
+  const tbody  = document.getElementById(`tbody-${section}-${s}`);
+  const statsEl = document.getElementById(`stats-${section}-${s}`);
+  if (!tbody) return;
+
+  const search = document.querySelector(`.search-input[data-section="${section}"][data-c="${c}"]`)?.value.toLowerCase() || '';
+  const fStat  = document.querySelector(`.filter-status[data-section="${section}"][data-c="${c}"]`)?.value || '';
+  const fFase  = document.querySelector(`.filter-fase[data-section="${section}"][data-c="${c}"]`)?.value || '';
+  const fSolic = document.querySelector(`.filter-solic[data-section="${section}"][data-c="${c}"]`)?.value || '';
+
+  // Aba "Todos": agrega dados de todas as carteiras
+  const allRows = c === 'Todos'
+    ? CARTEIRAS.flatMap(cart => (allData[`${section}_${cart}`] || []).map(r => ({...r, carteira: cart})))
+    : allData[`${section}_${c}`] || [];
+  const faseEl = document.querySelector(`.filter-fase[data-section="${section}"][data-c="${c}"]`);
+  const solicEl = document.querySelector(`.filter-solic[data-section="${section}"][data-c="${c}"]`);
+  if (faseEl && faseEl.options.length <= 1) {
+    const fases = [...new Set(allRows.map(r => r.fase).filter(Boolean))].sort();
+    fases.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = f; faseEl.appendChild(o); });
+  }
+  if (solicEl && solicEl.options.length <= 1) {
+    const solics = [...new Set(allRows.map(r => r.solicitacao).filter(Boolean))].sort();
+    solics.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; solicEl.appendChild(o); });
+  }
+
+  let rows = allRows.filter(r => {
+    if (section === 'outros' && currentOutroTipo !== '' && r.tipo !== currentOutroTipo) return false;
+    const ctrlCart = c === 'Todos' ? (r.carteira || c) : c;
+    const ctrl = controlData[ctrlCart]?.[r.id] || {};
+    return (!search || r.titulo.toLowerCase().includes(search) || (r.concorrente||'').toLowerCase().includes(search))
+      && (!fStat  || ctrl.finalizado === fStat)
+      && (!fFase  || r.fase === fFase)
+      && (!fSolic || r.solicitacao === fSolic);
+  });
+
+  // Stats
+  const baseRows = section === 'outros'
+    ? (allData[`${section}_${c}`] || []).filter(r => r.tipo === currentOutroTipo)
+    : (allData[`${section}_${c}`] || []);
+  const total = baseRows.length;
+  const done  = baseRows.filter(r => controlData[c]?.[r.id]?.finalizado === 'Sim').length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+
+  if (statsEl) statsEl.innerHTML = `
+    <div class="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <span class="progress-pct">${pct}%</span>
+    </div>
+    <span class="stat-pill green"><span class="stat-dot"></span>${done} ok</span>
+    <span class="stat-pill red"><span class="stat-dot"></span>${total-done} pend.</span>`;
+
+  if (!rows.length) {
+    const msg = total === 0
+      ? `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h4"/></svg></div><p>Nenhum card aqui</p><small>Clique em "Sincronizar" para carregar os dados do Pipefy</small></div>`
+      : `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><p>Nenhum resultado</p><small>Tente limpar os filtros</small></div>`;
+    tbody.innerHTML = `<tr><td colspan="12">${msg}</td></tr>`;
+    return;
+  }
+
+  const showTipo = section === 'outros';
+  tbody.innerHTML = rows.map(r => {
+    const ctrlCart = c === 'Todos' ? (r.carteira || c) : c;
+    const ctrl = controlData[ctrlCart]?.[r.id] || { finalizado:'Não', analista:'', obs:'' };
+    const aOpts = ANALISTAS.map(a => `<option value="${a}"${ctrl.analista===a?' selected':''}>${a}</option>`).join('');
+    const col   = TIPOS_CONFIG[r.tipo]?.color || 'desatualizados';
+    const dCls  = r.dias_atraso > 30 ? 'days-critical' : r.dias_atraso > 7 ? 'days-warn' : 'days-ok';
+    return `<tr>
+      <td>
+        <div class="cell-title">${esc(r.titulo)}</div>
+        ${c === 'Todos' ? `<div class="cell-sub" style="color:var(--brand-dark);font-weight:500">${esc(r.carteira||'')}</div>` : ''}
+      </td>
+      ${showTipo ? `<td><span class="badge b-${col}">${r.tipo}</span></td>` : ''}
+      <td style="font-size:12px">${esc(r.concorrente||'—')}</td>
+      <td style="font-size:12px;max-width:200px;color:var(--text2)">${esc(r.solicitacao||'—')}</td>
+      <td>${r.fase ? `<span class="fase-badge fase-${slugFase(r.fase)}">${esc(r.fase)}</span>` : '—'}</td>
+      <td style="font-family:var(--mono);font-size:12px">${r.data_vencimento||'—'}</td>
+      <td>
+        ${r.link_pipefy ? `<a href="${r.link_pipefy}" target="_blank" style="color:var(--brand);font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 8px;border:1px solid rgba(26,188,172,0.3);border-radius:6px;">
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9"/><path d="M10 2h4v4"/><path d="M7 9L14 2"/></svg>
+          Abrir</a>` : '—'}
+      </td>
+      <td>
+        <select class="select-cell${ctrl.finalizado==='Sim'?' sim':' nao'}"
+          onchange="updateCtrl('${r.carteira||c}','${r.id}','finalizado',this.value,this)">
+          <option value="Não"${ctrl.finalizado!=='Sim'?' selected':''}>Não</option>
+          <option value="Sim"${ctrl.finalizado==='Sim'?' selected':''}>Sim</option>
+        </select>
+      </td>
+      <td>
+        <select class="select-cell analista"
+          onchange="updateCtrl('${r.carteira||c}','${r.id}','analista',this.value,this)">
+          <option value="">— Analista —</option>${aOpts}
+        </select>
+      </td>
+      <td>
+        <textarea class="obs-cell" rows="1" placeholder="Observação…"
+          onblur="updateCtrl('${r.carteira||c}','${r.id}','obs',this.value,this)">${esc(ctrl.obs||'')}</textarea>
+      </td>
+      <td>
+        <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','${esc(r.link_pipefy||'')}')"
+          style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:var(--brand-light);border:1px solid rgba(26,188,172,0.3);border-radius:var(--radius-xs);color:var(--brand-dark);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font)"
+          onmouseover="this.style.background='var(--brand)';this.style.color='#fff'"
+          onmouseout="this.style.background='var(--brand-light)';this.style.color='var(--brand-dark)'">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5a2 2 0 012-2h8a2 2 0 012 2v5a2 2 0 01-2 2H6l-4 3V5z"/></svg>
+          Comentar
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function slugFase(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g,''); }
+
+// ════════════════════════════════════════
+// UPDATE CONTROL
+// ════════════════════════════════════════
+let saveTimer = null;
+function updateCtrl(c, id, field, val, el) {
+  if (!controlData[c]) controlData[c] = {};
+  if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'' };
+  controlData[c][id][field] = val;
+  if (field === 'finalizado') {
+    el.className = 'select-cell' + (val==='Sim'?' sim':' nao');
+    renderCarteira(currentSection, c);
+  }
+  showSaving();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => persistCtrl(c, id), 800);
+}
+
+async function persistCtrl(c, id) {
+  const d = controlData[c]?.[id];
+  if (!d) return;
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('auditoria_controles').upsert({
+        carteira: c, card_id: id,
+        finalizado: d.finalizado, analista: d.analista, obs: d.obs,
+        updated_at: new Date().toISOString()
+      }, { onConflict:'card_id' });
+    } catch(e) { console.warn('Save err:', e.message); }
+  } else {
+    localStorage.setItem('auditoria_controles', JSON.stringify(controlData));
+  }
+  showSaved();
+}
+
+// ════════════════════════════════════════
+// SAVE TOAST
+// ════════════════════════════════════════
+let savedTimer = null;
+function showSaving() {
+  const t = document.getElementById('save-toast');
+  document.getElementById('save-dot').classList.remove('saved');
+  document.getElementById('save-text').textContent = 'Salvando…';
+  t.classList.add('show');
+}
+function showSaved() {
+  document.getElementById('save-dot').classList.add('saved');
+  document.getElementById('save-text').textContent = 'Salvo';
+  clearTimeout(savedTimer);
+  savedTimer = setTimeout(() => document.getElementById('save-toast').classList.remove('show'), 2000);
+}
+
+// ════════════════════════════════════════
+// COUNTS & REBUILD
+// ════════════════════════════════════════
+function updateCarteiraCounts() {
+  CARTEIRAS.forEach(c => {
+    const key    = `${currentSection}_${c}`;
+    const count  = (allData[key]||[]).length;
+    const el     = document.getElementById(`cnt-${slug(c)}`);
+    if (el) el.textContent = count;
+  });
+  // Contar total para aba Todos (sempre baseado em outros)
+  const elTodos = document.getElementById('cnt-todos');
+  if (elTodos) {
+    const totalTodos = CARTEIRAS.reduce((n,c) => n + (allData[`outros_${c}`]||[]).length, 0);
+    elTodos.textContent = totalTodos;
+  }
+  // Section chips
+  const totalAtrasos = CARTEIRAS.reduce((n,c) => n + (allData[`atrasos_${c}`]||[]).length, 0);
+  const totalOutros  = CARTEIRAS.reduce((n,c) => n + (allData[`outros_${c}`]||[]).length,  0);
+  const totalNeg     = CARTEIRAS.reduce((n,c) => n + (allData[`negacoes_${c}`]||[]).length, 0);
+  document.getElementById('chip-atrasos').textContent  = totalAtrasos;
+  document.getElementById('chip-outros').textContent   = totalOutros;
+  const chipNeg = document.getElementById('chip-negacoes');
+  if (chipNeg) chipNeg.textContent = totalNeg;
+}
+
+function rebuildAll() {
+  updateCarteiraCounts();
+  renderCarteira(currentSection, currentCarteira);
+}
+
+// ════════════════════════════════════════
+// EXPORT CSV
+// ════════════════════════════════════════
+function exportCSV() {
+  let csv = 'Seção,Carteira,Título,Tipo,Solicitação,Concorrente,Fase,Vencimento,Dias Atraso,Finalizado,Analista CS,Observações,Link Pipefy\n';
+  ['atrasos','outros'].forEach(section => {
+    CARTEIRAS.forEach(c => {
+      (allData[`${section}_${c}`]||[]).forEach(r => {
+        const ctrl = controlData[c]?.[r.id] || {};
+        csv += [section,c,r.titulo,r.tipo,r.responsavel||'',r.fase||'',r.data_vencimento||'',r.dias_atraso||'',
+          ctrl.finalizado||'Não',ctrl.analista||'',(ctrl.obs||'').replace(/\n/g,' ')
+        ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',') + '\n';
+      });
+    });
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download = `auditoria_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;
+  a.click();
+}
+
+function renderResumo() {
+  const panel = document.getElementById('resumo-panel');
+  if (!panel) return;
+
+  // ── Date filter ──
+  const filterFrom = document.getElementById('painel-from')?.value || '';
+  const filterTo   = document.getElementById('painel-to')?.value   || '';
+
+  const ANALISTAS_PAINEL = ['Aline','Amaore','Keila','Lívia','Railanne','Yasmim'];
+  const CARTEIRAS_ALL = [...CARTEIRAS];
+
+  // ── Compute metrics ──
+  function getCards(section, carteira) {
+    return allData[`${section}_${carteira}`] || [];
+  }
+
+  function inDateRange(cardId, carteira) {
+    if (!filterFrom && !filterTo) return true;
+    const ctrl = controlData[carteira]?.[cardId];
+    // Use updated_at from supabase if available — for now just include all
+    return true;
+  }
+
+  // Atrasos stats
+  let atrasoTotal=0, atrasoPendente=0, atrasoConcluido=0;
+  const atrasoByCarteira = {};
+  CARTEIRAS_ALL.forEach(c => {
+    const cards = getCards('atrasos', c);
+    const total = cards.length;
+    const sim   = cards.filter(r => controlData[c]?.[r.id]?.finalizado === 'Sim').length;
+    atrasoByCarteira[c] = { total, sim, nao: total - sim };
+    atrasoTotal     += total;
+    atrasoConcluido += sim;
+    atrasoPendente  += (total - sim);
+  });
+
+  // Outros stats
+  const tipoTotals = { 'Vencidos na Fase':0, 'Desatualizados':0, 'Cadastro de Marketplace':0 };
+  const tipoByCarteira = {};
+  Object.keys(tipoTotals).forEach(t => { tipoByCarteira[t] = {}; CARTEIRAS_ALL.forEach(c => { tipoByCarteira[t][c]=0; }); });
+  CARTEIRAS_ALL.forEach(c => {
+    getCards('outros', c).forEach(r => {
+      if (tipoTotals[r.tipo] !== undefined) {
+        tipoTotals[r.tipo]++;
+        tipoByCarteira[r.tipo][c]++;
+      }
+    });
+  });
+
+  // Analista concluídos (atrasos only, specific list)
+  const analistaStats = {};
+  ANALISTAS_PAINEL.forEach(a => { analistaStats[a] = { total:0, byCarteira:{} }; CARTEIRAS_ALL.forEach(c => analistaStats[a].byCarteira[c]=0); });
+  CARTEIRAS_ALL.forEach(c => {
+    getCards('atrasos', c).forEach(r => {
+      const ctrl = controlData[c]?.[r.id];
+      if (ctrl?.finalizado === 'Sim' && analistaStats[ctrl.analista]) {
+        analistaStats[ctrl.analista].total++;
+        analistaStats[ctrl.analista].byCarteira[c]++;
+      }
+    });
+  });
+  const maxAnal = Math.max(1, ...ANALISTAS_PAINEL.map(a => analistaStats[a].total));
+
+  const carteirasComDados = CARTEIRAS_ALL.filter(c =>
+    atrasoByCarteira[c]?.total > 0 ||
+    Object.values(tipoByCarteira).some(t => t[c] > 0)
+  );
+
+  // ── Render ──
+  panel.innerHTML = `
+    <!-- HEADER PAINEL -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--text)">Painel Analítico</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Visão consolidada de todas as carteiras · ${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)"><rect x="1" y="3" width="14" height="12" rx="1"/><path d="M1 7h14M5 1v4M11 1v4"/></svg>
+          <span style="font-size:11px;color:var(--text3)">De</span>
+          <input type="date" id="painel-from" value="${filterFrom}"
+            style="border:none;background:transparent;font-size:12px;color:var(--text);font-family:var(--font);outline:none"
+            onchange="renderResumo()"/>
+          <span style="font-size:11px;color:var(--text3)">até</span>
+          <input type="date" id="painel-to" value="${filterTo}"
+            style="border:none;background:transparent;font-size:12px;color:var(--text);font-family:var(--font);outline:none"
+            onchange="renderResumo()"/>
+        </div>
+        ${filterFrom||filterTo ? `<button onclick="document.getElementById('painel-from').value='';document.getElementById('painel-to').value='';renderResumo()"
+          style="padding:6px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text3);font-size:11px;cursor:pointer">
+          Limpar filtro
+        </button>` : ''}
+      </div>
+    </div>
+
+    <!-- KPI ROW -->
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+      ${[
+        { label:'Atrasos Total',     val:atrasoTotal,              sub:'cards no relatório',          color:'var(--red)',    bg:'var(--red-bg)',    icon:'M12 9v4M12 17v.5M5.07 4.93A10 10 0 1 0 19 12' },
+        { label:'Pendentes',         val:atrasoPendente,           sub:'atrasos não concluídos',      color:'var(--amber)',  bg:'var(--amber-bg)',  icon:'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.97-4.03 9-9 9S3 16.97 3 12 7.03 3 12 3s9 4.03 9 9z' },
+        { label:'Concluídos',        val:atrasoConcluido,          sub:'atrasos finalizados',         color:'var(--green)',  bg:'var(--green-bg)',  icon:'M5 13l4 4L19 7' },
+        { label:'Vencidos na Fase',  val:tipoTotals['Vencidos na Fase'],  sub:'cards em atraso de fase', color:'var(--amber)',  bg:'var(--amber-bg)',  icon:'M12 8v4l3 3M12 2a10 10 0 100 20A10 10 0 0012 2z' },
+        { label:'Desatualizados',    val:tipoTotals['Desatualizados'],    sub:'sem atualização +30d',    color:'var(--blue)',   bg:'var(--blue-bg)',   icon:'M4 4h16v2H4zM4 9h10v2H4zM4 14h6v2H4z' },
+        { label:'Marketplace',       val:tipoTotals['Cadastro de Marketplace'], sub:'cadastros pendentes', color:'var(--purple)', bg:'var(--purple-bg)', icon:'M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z' },
+      ].map(k => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-sm)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3)">${k.label}</span>
+            <div style="width:28px;height:28px;border-radius:8px;background:${k.bg};display:flex;align-items:center;justify-content:center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${k.color}" stroke-width="2" stroke-linecap="round"><path d="${k.icon}"/></svg>
+            </div>
+          </div>
+          <div style="font-size:30px;font-weight:700;color:${k.color};font-family:var(--mono);line-height:1">${k.val}</div>
+          <div style="font-size:11px;color:var(--text3)">${k.sub}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- MIDDLE ROW: Atrasos por Carteira + Analistas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <!-- Atrasos por carteira — clean cards -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--text)">Atrasos por Carteira</span>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--green)"><span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block"></span>Concluído</span>
+            <span style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--red)"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block"></span>Pendente</span>
+          </div>
+        </div>
+        <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px">
+          ${carteirasComDados.filter(c=>atrasoByCarteira[c]?.total>0).map(c => {
+            const {total,sim,nao} = atrasoByCarteira[c];
+            const pct = total ? Math.round(sim/total*100) : 0;
+            const simW = total ? Math.round(sim/total*100) : 0;
+            return `
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <span style="font-size:12px;font-weight:700;color:var(--text)">${c}</span>
+                <div style="display:flex;align-items:center;gap:14px">
+                  <div style="text-align:center">
+                    <div style="font-size:14px;font-weight:700;color:var(--green);font-family:var(--mono);line-height:1">${sim}</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-top:1px">Conc.</div>
+                  </div>
+                  <div style="text-align:center">
+                    <div style="font-size:14px;font-weight:700;color:var(--red);font-family:var(--mono);line-height:1">${nao}</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-top:1px">Pend.</div>
+                  </div>
+                  <div style="text-align:center;padding-left:10px;border-left:1px solid var(--border)">
+                    <div style="font-size:14px;font-weight:700;color:var(--text);font-family:var(--mono);line-height:1">${total}</div>
+                    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-top:1px">Total</div>
+                  </div>
+                </div>
+              </div>
+              <div style="height:6px;border-radius:3px;overflow:hidden;background:var(--surface3);position:relative">
+                <div style="width:${simW}%;height:100%;background:linear-gradient(90deg,var(--green),#34d399);border-radius:3px;transition:width 0.5s ease"></div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:3px">
+                <span style="font-size:10px;font-family:var(--mono);color:${pct>=80?'var(--green)':pct>=40?'var(--amber)':'var(--text3)'}">${pct}%</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Analistas com meta -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--text)">Conclusões por Analista</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:var(--brand-light);color:var(--brand-dark);font-family:var(--mono)">${atrasoConcluido} concluídos</span>
+        </div>
+        <div style="padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          ${(() => {
+            // Meta = total de atrasos nas carteiras responsáveis
+            const metas = {
+              'Yasmim': ['Titanium 1','Black 2'],
+              'Aline':  ['Titanium 2','Platinum 1'],
+              'Amaore': ['Black 1','Black 3','Platinum 2'],
+            };
+            return ANALISTAS_PAINEL.map((a,i) => {
+              const count = analistaStats[a].total;
+              const cartResp = metas[a] || [];
+              const meta = cartResp.reduce((n,c) => n+(atrasoByCarteira[c]?.total||0), 0);
+              const hasMeta = meta > 0;
+              const pctMeta = hasMeta ? Math.min(100, Math.round(count/meta*100)) : 0;
+              const barColor = !hasMeta ? 'var(--brand)' : pctMeta>=100 ? 'var(--green)' : pctMeta>=60 ? 'var(--amber)' : 'var(--red)';
+              return `
+              <div style="padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="width:22px;height:22px;border-radius:50%;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--brand-dark)">${i+1}</span>
+                    <div>
+                      <div style="font-size:13px;font-weight:700;color:var(--text)">${a}</div>
+                      ${cartResp.length ? `<div style="font-size:10px;color:var(--text3)">${cartResp.join(' · ')}</div>` : '<div style="font-size:10px;color:var(--text3)">Sem carteira definida</div>'}
+                    </div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-size:16px;font-weight:700;color:${barColor};font-family:var(--mono);line-height:1">${count}${hasMeta?`<span style="font-size:11px;color:var(--text3)"> / ${meta}</span>`:''}</div>
+                    ${hasMeta ? `<div style="font-size:10px;color:${barColor};margin-top:1px">${pctMeta}% da meta</div>` : '<div style="font-size:10px;color:var(--text3)">sem meta</div>'}
+                  </div>
+                </div>
+                <div style="height:5px;border-radius:3px;background:var(--surface3);overflow:hidden">
+                  <div style="width:${hasMeta?pctMeta:Math.round(count/maxAnal*100)}%;height:100%;background:${barColor};border-radius:3px;transition:width 0.5s ease"></div>
+                </div>
+              </div>`;
+            }).join('');
+          })()}
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM: Por carteira detalhado (todos os tipos) -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;font-weight:700;color:var(--text)">Detalhamento por Carteira</span>
+        <span style="font-size:11px;color:var(--text3)">todos os relatórios</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;min-width:700px">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:10px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);text-align:left;border-bottom:1px solid var(--border)">Carteira</th>
+              <th style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--red);text-align:center;border-bottom:1px solid var(--border)">Atrasos</th>
+              <th style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--green);text-align:center;border-bottom:1px solid var(--border)">Conc.</th>
+              <th style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--amber);text-align:center;border-bottom:1px solid var(--border)">Vencidos</th>
+              <th style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--blue);text-align:center;border-bottom:1px solid var(--border)">Desatual.</th>
+              <th style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--purple);text-align:center;border-bottom:1px solid var(--border)">Mktplace</th>
+              <th style="padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);text-align:center;border-bottom:1px solid var(--border)">% Conc.</th>
+              ${ANALISTAS_PAINEL.map(a => `<th style="padding:10px 8px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--brand-dark);text-align:center;border-bottom:1px solid var(--border)">${a.split(' ')[0]}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${carteirasComDados.map((c,idx) => {
+              const a = atrasoByCarteira[c];
+              const pct = a.total ? Math.round(a.sim/a.total*100) : 0;
+              return `
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:10px 16px;font-size:13px;font-weight:600;color:var(--text)">${c}</td>
+                <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--red)">${a.total||0}</td>
+                <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:600;color:var(--green)">${a.sim||0}</td>
+                <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;color:var(--text2)">${tipoByCarteira['Vencidos na Fase'][c]||0}</td>
+                <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;color:var(--text2)">${tipoByCarteira['Desatualizados'][c]||0}</td>
+                <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;color:var(--text2)">${tipoByCarteira['Cadastro de Marketplace'][c]||0}</td>
+                <td style="padding:10px 12px;text-align:center">
+                  <div style="display:inline-flex;align-items:center;gap:5px">
+                    <div style="width:36px;height:5px;border-radius:3px;background:var(--surface3);overflow:hidden">
+                      <div style="width:${pct}%;height:100%;background:${pct>=80?'var(--green)':pct>=40?'var(--amber)':'var(--red)'};border-radius:3px"></div>
+                    </div>
+                    <span style="font-size:11px;font-family:var(--mono);color:var(--text3)">${pct}%</span>
+                  </div>
+                </td>
+                ${ANALISTAS_PAINEL.map(a2 => `<td style="padding:10px 8px;text-align:center;font-family:var(--mono);font-size:12px;color:${analistaStats[a2].byCarteira[c]>0?'var(--brand-dark)':'var(--text3)'};font-weight:${analistaStats[a2].byCarteira[c]>0?700:400}">${analistaStats[a2].byCarteira[c]||'—'}</td>`).join('')}
+              </tr>`;
+            }).join('')}
+            <!-- Total row -->
+            <tr style="background:var(--surface2);font-weight:700">
+              <td style="padding:10px 16px;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em">Total</td>
+              <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--red)">${atrasoTotal}</td>
+              <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--green)">${atrasoConcluido}</td>
+              <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text2)">${tipoTotals['Vencidos na Fase']}</td>
+              <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text2)">${tipoTotals['Desatualizados']}</td>
+              <td style="padding:10px 12px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text2)">${tipoTotals['Cadastro de Marketplace']}</td>
+              <td style="padding:10px 12px;text-align:center">
+                <span style="font-size:12px;font-family:var(--mono);font-weight:700;color:${atrasoTotal?Math.round(atrasoConcluido/atrasoTotal*100):0 >=80?'var(--green)':'var(--text2)'}">${atrasoTotal?Math.round(atrasoConcluido/atrasoTotal*100):0}%</span>
+              </td>
+              ${ANALISTAS_PAINEL.map(a2 => `<td style="padding:10px 8px;text-align:center;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--brand-dark)">${analistaStats[a2].total||'—'}</td>`).join('')}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════
+// GOOGLE CHAT NOTIFICATION — Sprint 4
+// ════════════════════════════════════════
+const GCHAT_WEBHOOK = 'https://chat.googleapis.com/v1/spaces/AAAAHKnwxC8/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=T5Rw6eKhw9aw_rUV8dWbfPmGB3oHNs6LC8ahzYVqy3s';
+const DASHBOARD_LINK = 'https://branddi-auditoria.vercel.app'; // atualizar após deploy Sprint 5
+
+function buildGChatMessage() {
+  const hoje = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  const hojeStr = hoje.charAt(0).toUpperCase() + hoje.slice(1);
+
+  // ── Atrasos por carteira ──
+  const atrasoLines = CARTEIRAS
+    .map(c => ({ c, n: (allData[`atrasos_${c}`]||[]).length }))
+    .filter(x => x.n > 0)
+    .map(x => `    • *${x.c}:* ${x.n} cards`)
+    .join('\n');
+  const totalAtrasos = CARTEIRAS.reduce((n,c) => n+(allData[`atrasos_${c}`]||[]).length, 0);
+
+  // ── CS Negativações por carteira ──
+  const negLines = CARTEIRAS
+    .map(c => ({ c, n: (allData[`negacoes_${c}`]||[]).length }))
+    .filter(x => x.n > 0)
+    .map(x => `    • *${x.c}:* ${x.n} cards`)
+    .join('\n');
+  const totalNeg = CARTEIRAS.reduce((n,c) => n+(allData[`negacoes_${c}`]||[]).length, 0);
+
+  // ── Vencidos na Fase por carteira ──
+  const vencLines = CARTEIRAS
+    .map(c => ({ c, n: (allData[`outros_${c}`]||[]).filter(r=>r.tipo==='Vencidos na Fase').length }))
+    .filter(x => x.n > 0)
+    .map(x => `    • *${x.c}:* ${x.n} cards`)
+    .join('\n');
+  const totalVenc = CARTEIRAS.reduce((n,c) =>
+    n+(allData[`outros_${c}`]||[]).filter(r=>r.tipo==='Vencidos na Fase').length, 0);
+
+  // ── Desatualizados por carteira ──
+  const desatLines = CARTEIRAS
+    .map(c => ({ c, n: (allData[`outros_${c}`]||[]).filter(r=>r.tipo==='Desatualizados').length }))
+    .filter(x => x.n > 0)
+    .map(x => `    • *${x.c}:* ${x.n} cards`)
+    .join('\n');
+  const totalDesat = CARTEIRAS.reduce((n,c) =>
+    n+(allData[`outros_${c}`]||[]).filter(r=>r.tipo==='Desatualizados').length, 0);
+
+  // ── Marketplace total ──
+  const totalMkt = CARTEIRAS.reduce((n,c) =>
+    n+(allData[`outros_${c}`]||[]).filter(r=>r.tipo==='Cadastro de Marketplace').length, 0);
+
+  // ── Conclusões globais ──
+  let totalCards=0, totalSim=0;
+  CARTEIRAS.forEach(c => {
+    ['atrasos','negacoes','outros'].forEach(s => {
+      const cards = allData[`${s}_${c}`]||[];
+      totalCards += cards.length;
+      cards.forEach(r => { if (controlData[c]?.[r.id]?.finalizado==='Sim') totalSim++; });
+    });
+  });
+  const pct = totalCards ? Math.round(totalSim/totalCards*100) : 0;
+
+  const msg = [
+    `🗓️ *Auditoria Atendimento — ${hojeStr}*`,
+    `📊 _Resumo do dia · ${totalSim}/${totalCards} concluídos (${pct}%)_`,
+    '',
+    `🔴 *ATRASOS — ${totalAtrasos} cards*`,
+    atrasoLines || '    _Nenhum atraso hoje_',
+    '',
+    `⚠️ *CS - NEGATIVAÇÕES — ${totalNeg} cards*`,
+    negLines || '    _Nenhuma negativação hoje_',
+    '',
+    `🟡 *VENCIDOS NA FASE — ${totalVenc} cards*`,
+    vencLines || '    _Nenhum vencido hoje_',
+    '',
+    `⚪ *DESATUALIZADOS — ${totalDesat} cards*`,
+    desatLines || '    _Nenhum desatualizado hoje_',
+    '',
+    `🛒 *CADASTRO DE MARKETPLACE — ${totalMkt} cards*`,
+    '',
+    `🔗 ${DASHBOARD_LINK}`,
+  ].join('\n');
+
+  return msg;
+}
+
+async function sendGChatNow() {
+  const btn = document.getElementById('gchat-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px" class="spin"><path d="M1 4s1-3 7-3a7 7 0 016.5 4.4"/><path d="M15 12s-1 3-7 3A7 7 0 011.5 10.6"/><polyline points="1,1 1,4 4,4"/><polyline points="15,15 15,12 12,12"/></svg> Enviando…`;
+
+  try {
+    const msg = buildGChatMessage();
+    const resp = await fetch(GCHAT_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: msg }),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><path d="M2 8l4 4 8-8"/></svg> Enviado!`;
+    btn.style.background = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = '#fff';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+      btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V4z"/></svg> Enviar Resumo`;
+    }, 4000);
+  } catch(e) {
+    console.error('GChat error:', e);
+    btn.innerHTML = `❌ Erro ao enviar`;
+    btn.style.color = 'var(--red)';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.style.color = '';
+      btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4a1 1 0 011-1h10a1 1 0 011 1v7a1 1 0 01-1 1H5l-3 3V4z"/></svg> Enviar Resumo`;
+    }, 4000);
+  }
+}
+
+// Auto-send daily at 7am Brasília (after sync completes)
+async function autoSendGChat() {
+  try {
+    await sendGChatNow();
+    console.log('[GChat] Resumo diário enviado automaticamente');
+  } catch(e) {
+    console.warn('[GChat] Falha no envio automático:', e.message);
+  }
+}
+
+function openConfig() { document.getElementById('config-modal').classList.remove('hidden'); }
+
+// ════════════════════════════════════════
+// COMMENT MODAL
+// ════════════════════════════════════════
+let _commentCardId   = '';
+let _commentCardName = '';
+let _commentLinkAtv  = ''; // link no pipe Atendimento - Atividades do Cliente
+
+// ════════════════════════════════════════
+// COMMENT TEMPLATES
+// ════════════════════════════════════════
+const COMMENT_TEMPLATES = {
+  livre:         { hint: '', text: '' },
+  monitoramento: {
+    hint: 'Preencha os campos entre colchetes [ ]',
+    text: '[Nome] - Atualmente, o domínio ocupa a [x]ª posição em nível de agressividade [(x)]. Portanto, mantendo em monitoramento para acompanhar a evolução e verificar se o cenário será de queda ou aumento de agressividade.',
+  },
+  parceria: {
+    hint: 'Preencha os campos entre colchetes [ ]',
+    text: '[Nome] - Email enviado ao cliente, passando a visibilidade de que [nome do concorrente] sinalizou ser parceiro de [nome do cliente] e, portanto, buscando confirmar a veracidade dessa informação. Aguardando devolutiva.',
+  },
+  visibilidade: {
+    hint: 'Preencha os campos entre colchetes [ ]',
+    text: '[Nome] - Email enviado ao cliente, passando a visibilidade de que [detalhamento]. Aguardando devolutiva.',
+  },
+  sucesso: {
+    hint: 'Preencha os campos entre colchetes [ ]',
+    text: '[Nome] - Última ocorrência se mantém em [x], portanto, caso se encontra em sucesso. Concluindo tarefa.\n\nEm caso de reincidência, abrir novo forms para o time de Atendimento.',
+  },
+};
+
+function applyTemplate(tpl) {
+  document.querySelectorAll('.tpl-btn').forEach(b => {
+    const active = b.dataset.tpl === tpl;
+    b.style.background  = active ? 'var(--brand)'   : 'var(--surface2)';
+    b.style.color       = active ? '#fff'            : 'var(--text2)';
+    b.style.borderColor = active ? 'var(--brand)'    : 'var(--border2)';
+  });
+  const tmpl = COMMENT_TEMPLATES[tpl] || COMMENT_TEMPLATES.livre;
+  const ta   = document.getElementById('comment-text');
+  const hint = document.getElementById('tpl-hint');
+  if (tmpl.hint) { hint.style.display='block'; hint.textContent='💡 '+tmpl.hint; }
+  else           { hint.style.display='none'; }
+  ta.value = tmpl.text || '';
+  ta.style.height = 'auto';
+  ta.style.height = Math.max(100, ta.scrollHeight) + 'px';
+  updateCommentPreview();
+  if (tmpl.text) {
+    const first = ta.value.indexOf('[');
+    const end   = ta.value.indexOf(']') + 1;
+    if (first >= 0) { ta.focus(); ta.setSelectionRange(first, end); }
+  } else { ta.focus(); }
+}
+
+function openCommentModal(cardId, cardName, linkAtividades) {
+  _commentCardId   = cardId;
+  _commentCardName = cardName;
+  _commentLinkAtv  = linkAtividades;
+
+  document.getElementById('comment-card-name').textContent = cardName;
+  document.getElementById('comment-text').value = '';
+  document.getElementById('comment-preview').textContent = '';
+  document.getElementById('comment-status').style.display = 'none';
+  document.getElementById('comment-submit-btn').disabled = false;
+  document.getElementById('comment-due-date').value = '';
+  // Reset phase selector
+  const phaseSelect = document.getElementById('comment-phase');
+  phaseSelect.innerHTML = '<option value="">— Manter fase atual —</option>';
+  document.getElementById('comment-modal').classList.remove('hidden');
+  // Load phases async
+  applyTemplate('livre');
+  document.getElementById('tpl-hint').style.display = 'none';
+  loadPipefyPhases();
+
+  // Update preview on type
+  const ta = document.getElementById('comment-text');
+  ta.oninput = updateCommentPreview;
+  ta.focus();
+}
+
+function updateCommentPreview() {
+  const text = document.getElementById('comment-text').value.trim();
+  const preview = text
+    ? `${text}
+
+${_commentLinkAtv || '(link do card não disponível)'}`
+    : '';
+  document.getElementById('comment-preview').textContent = preview;
+}
+
+function closeCommentModal() {
+  document.getElementById('comment-modal').classList.add('hidden');
+}
+
+async function submitComment() {
+  const text = document.getElementById('comment-text').value.trim();
+  if (!text) { alert('Escreva um comentário antes de publicar.'); return; }
+  if (!pipefyToken) { alert('Token do Pipefy não configurado.'); return; }
+
+  const commentBody = `${text}
+
+${_commentLinkAtv || ''}`.trim();
+
+  const btn = document.getElementById('comment-submit-btn');
+  const status = document.getElementById('comment-status');
+  btn.disabled = true;
+  btn.textContent = 'Publicando…';
+
+  showStatus('info', 'Publicando comentário…');
+
+  // Card ID no pipe Atendimento - Atividades do Cliente = _commentCardId
+  // Card ID no OPEC = extraído do link_pipefy (link do card no Pipefy dentro do card de Atendimento)
+  // The link_pipefy field contains the OPEC card link e.g. https://app.pipefy.com/open-cards/12345
+  const opecCardId = _commentLinkAtv ? _commentLinkAtv.split('/').pop() : null;
+
+  const newDueDate = document.getElementById('comment-due-date').value;
+  const newPhaseId = document.getElementById('comment-phase').value;
+  let successCount = 0;
+  let errors = [];
+
+  // Move phase if selected
+  if (newPhaseId) {
+    try {
+      await moveCardToPhase(_commentCardId, newPhaseId);
+      showStatus('info', 'Fase atualizada…');
+    } catch(e) {
+      errors.push('Fase: ' + e.message);
+    }
+  }
+
+  // Update due date if provided
+  if (newDueDate) {
+    try {
+      await updateCardDueDate(_commentCardId, newDueDate);
+      showStatus('info', 'Vencimento atualizado…');
+    } catch(e) {
+      errors.push('Vencimento: ' + e.message);
+    }
+  }
+
+  // Publish on Atendimento - Atividades do Cliente card
+  try {
+    await createPipefyComment(_commentCardId, commentBody);
+    successCount++;
+    showStatus('info', '1/2 publicado (Atendimento)…');
+  } catch(e) {
+    errors.push('Atendimento: ' + e.message);
+  }
+
+  // Publish on OPEC card (link_pipefy field)
+  if (opecCardId && opecCardId !== _commentCardId) {
+    try {
+      await createPipefyComment(opecCardId, commentBody);
+      successCount++;
+    } catch(e) {
+      errors.push('OPEC: ' + e.message);
+    }
+  } else if (!opecCardId) {
+    errors.push('OPEC: link do card não encontrado neste card');
+  }
+
+  // Result
+  if (errors.length === 0) {
+    const dueDateMsg = newDueDate ? ` · Vencimento: ${newDueDate.split('-').reverse().join('/')}` : '';
+    const phaseName = document.getElementById('comment-phase').selectedOptions[0]?.text || '';
+    const phaseMsg = newPhaseId ? ` · Fase: ${phaseName}` : '';
+    showStatus('success', `✓ Publicado nos ${successCount} pipes com sucesso!${dueDateMsg}${phaseMsg}`);
+    setTimeout(closeCommentModal, 2000);
+  } else if (successCount > 0) {
+    showStatus('warning', `Publicado em ${successCount} pipe(s). Erros: ${errors.join(' | ')}`);
+  } else {
+    showStatus('error', 'Erro ao publicar: ' + errors.join(' | '));
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l12-6-6 12-2-4-4-2z"/></svg> Publicar nos dois pipes';
+}
+
+// Cache phases to avoid repeated API calls
+let _pipefyPhasesCache = null;
+
+async function loadPipefyPhases() {
+  const phaseSelect = document.getElementById('comment-phase');
+  if (!pipefyToken) return;
+  try {
+    // Use cached phases if available
+    if (_pipefyPhasesCache) {
+      populatePhaseSelect(phaseSelect, _pipefyPhasesCache);
+      return;
+    }
+    const q = `{ pipe(id: "302656757") { phases { id name } } }`;
+    const resp = await pipefyGQL(q);
+    if (resp?.errors?.length || !resp?.data?.pipe?.phases) return;
+    _pipefyPhasesCache = resp.data.pipe.phases;
+    populatePhaseSelect(phaseSelect, _pipefyPhasesCache);
+  } catch(e) { console.warn('loadPipefyPhases error:', e.message); }
+}
+
+function populatePhaseSelect(select, phases) {
+  // Show only relevant phases (exclude negativação, marketplace, concluídos)
+  const excluded = ['backlog - solicitações','enviado - solicitação de neg','cs - negativ','cadastro de marketplace','concluídos'];
+  const filtered = phases.filter(p => !excluded.some(e => p.name.toLowerCase().includes(e)));
+  select.innerHTML = '<option value="">— Manter fase atual —</option>';
+  filtered.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+}
+
+async function moveCardToPhase(cardId, phaseId) {
+  const mutation = `mutation {
+    moveCardToPhase(input: { card_id: "${cardId}", destination_phase_id: "${phaseId}" }) {
+      card { id current_phase { name } }
+    }
+  }`;
+  const resp = await pipefyGQL(mutation);
+  if (resp?.errors?.length) throw new Error(resp.errors[0].message);
+  return resp?.data?.moveCardToPhase?.card;
+}
+
+async function updateCardDueDate(cardId, dateStr) {
+  // dateStr format: "YYYY-MM-DD" → convert to ISO datetime
+  const isoDate = dateStr + 'T12:00:00-03:00'; // noon Brasília time
+  const mutation = `mutation {
+    updateCard(input: { id: "${cardId}", due_date: "${isoDate}" }) {
+      card { id due_date }
+    }
+  }`;
+  const resp = await pipefyGQL(mutation);
+  if (resp?.errors?.length) throw new Error(resp.errors[0].message);
+  return resp?.data?.updateCard?.card;
+}
+
+async function createPipefyComment(cardId, text) {
+  const mutation = `mutation {
+    createComment(input: { card_id: "${cardId}", text: ${JSON.stringify(text)} }) {
+      comment { id text }
+    }
+  }`;
+  const resp = await pipefyGQL(mutation);
+  if (resp?.errors?.length) throw new Error(resp.errors[0].message);
+  return resp?.data?.createComment?.comment;
+}
+
+function showStatus(type, msg) {
+  const el = document.getElementById('comment-status');
+  const colors = {
+    info:    { bg:'var(--brand-light)',  color:'var(--brand-dark)', border:'rgba(26,188,172,0.3)' },
+    success: { bg:'var(--green-bg)',     color:'var(--green)',      border:'rgba(16,185,129,0.3)' },
+    warning: { bg:'var(--amber-bg)',     color:'var(--amber)',      border:'rgba(245,158,11,0.3)' },
+    error:   { bg:'var(--red-bg)',       color:'var(--red)',        border:'rgba(239,68,68,0.3)'  },
+  };
+  const c = colors[type] || colors.info;
+  el.style.display = 'block';
+  el.style.background = c.bg;
+  el.style.color = c.color;
+  el.style.border = `1px solid ${c.border}`;
+  el.textContent = msg;
+}
+
+// Diagnostic: fetch phase names & IDs for both pipes
+async function autoDetectPhases() {
+  if (!pipefyToken) return;
+  try {
+    const q = `{ p1: pipe(id: "302656757") { phases { id name } } p2: pipe(id: "302483272") { phases { id name } } }`;
+    const r = await pipefyGQL(q);
+    if (r?.errors?.length || !r?.data) return;
+
+    // Atrasos: exclude negativação, marketplace, concluídos
+    const excAtr = ['backlog - solicitações de negativação','enviado - solicitação de negativação','cs - negativações','cadastro de marketplace','concluídos geral'];
+    const atrPhases = r.data.p1.phases.filter(p => !excAtr.some(e => p.name.toLowerCase().includes(e))).map(p => p.id);
+    if (atrPhases.length) TIPOS_CONFIG['Atrasos'].phaseIds = atrPhases;
+
+    // Vencidos: exclude churn, mais de 12 meses, novo cliente, renovação
+    // Exclude: Churn puro, Mais de 12 meses, StandBy, Pós OnBoarding, Renovação
+    // Keep: Solicitação de Churn (Em reversão) — must NOT be excluded
+    // Use EXACT match for all Vencidos exclusions to avoid false positives
+    const vencPhases = r.data.p2.phases.filter(p => {
+      const n = p.name.toLowerCase().trim();
+      if (n === 'mais de 12 meses') return false;  // exact
+      if (n === 'standby')          return false;  // exact
+      if (n === 'pós onboarding')   return false;  // exact
+      if (n === 'renovação')        return false;  // exact
+      if (n === 'churn')            return false;  // exact — NOT 'em reversão'
+      if (n.includes('churn') && !n.includes('revers')) return false;
+      return true;
+    }).map(p => p.id);
+    if (vencPhases.length) TIPOS_CONFIG['Vencidos na Fase'].phaseIds = vencPhases;
+
+    // Marketplace: find exact phase
+    const mkt = r.data.p1.phases.find(p => p.name.toLowerCase().includes('cadastro de marketplace'));
+    if (mkt) TIPOS_CONFIG['Cadastro de Marketplace'].phaseIds = [mkt.id];
+
+    // CS - Negativações: find exact phase
+    const negPhase = r.data.p1.phases.find(p => p.name.toLowerCase().includes('cs - negativ'));
+    if (negPhase) {
+      TIPOS_CONFIG['CS - Negativações'].phaseIds = [negPhase.id];
+      console.log('[Auto] CS-Negativações phaseId:', negPhase.id);
+    }
+
+    console.log('[Auto] Atrasos phases:', atrPhases.length, r.data.p1.phases.map(p=>p.name));
+    console.log('[Auto] Vencidos phases:', vencPhases.length);
+  } catch(e) { console.warn('[Auto] phase detect error:', e.message); }
+}
+
+async function diagFases() {
+  if (!pipefyToken) { alert('Configure o Pipefy primeiro.'); return; }
+  const q = `{ 
+    p1: pipe(id: "302656757") { phases { id name cards_count } }
+    p2: pipe(id: "302483272") { phases { id name cards_count } }
+  }`;
+  try {
+    const r = await pipefyGQL(q);
+    console.log('=== FASES PIPE 302656757 (Atrasos + Marketplace) ===');
+    r.data.p1.phases.forEach(p => console.log(`  ID:${p.id} | "${p.name}" | ${p.cards_count} cards`));
+    console.log('=== FASES PIPE 302483272 (Vencidos + Desatualizados) ===');
+    r.data.p2.phases.forEach(p => console.log(`  ID:${p.id} | "${p.name}" | ${p.cards_count} cards`));
+
+    // Auto-update Atrasos phaseIds (pipe 302656757, exclude negativação + marketplace + concluídos)
+    const excludedAtrasos = ['backlog - solicitações de negativação','enviado - solicitação de negativação',
+      'cs - negativações','cadastro de marketplace','concluídos geral'];
+    const atrasoPhases = r.data.p1.phases
+      .filter(p => !excludedAtrasos.some(e => p.name.toLowerCase().includes(e)))
+      .map(p => p.id);
+    TIPOS_CONFIG['Atrasos'].phaseIds = atrasoPhases;
+    console.log('✅ Atrasos phaseIds:', atrasoPhases);
+
+    // Auto-update Vencidos na Fase phaseIds (pipe 302483272, exclude Churn + Mais de 12 meses + Novo cliente + Renovação)
+    const excludedVencidos = ['churn','mais de 12 meses','novo cliente','renovação','solicitação de churn'];
+    const vencidosPhases = r.data.p2.phases
+      .filter(p => !excludedVencidos.some(e => p.name.toLowerCase().includes(e)))
+      .map(p => p.id);
+    TIPOS_CONFIG['Vencidos na Fase'].phaseIds = vencidosPhases;
+    console.log('✅ Vencidos phaseIds:', vencidosPhases);
+
+    // Desatualizados: does NOT use phaseIds — fetches ALL cards from pipe and filters by last comment
+    TIPOS_CONFIG['Desatualizados'].phaseIds = null;
+    console.log('✅ Desatualizados: will use allCards + last_comment_at filter');
+
+    // Marketplace: find the "Cadastro de Marketplace" phase in pipe 302656757
+    const mktPhase = r.data.p1.phases.find(p => p.name.toLowerCase().includes('cadastro de marketplace'));
+    if (mktPhase) {
+      TIPOS_CONFIG['Cadastro de Marketplace'].phaseIds = [mktPhase.id];
+      console.log('✅ Marketplace phaseId:', mktPhase.id, mktPhase.name);
+    }
+
+    alert(`Fases carregadas! Clique em Sincronizar.`);
+  } catch(e) { alert('Erro: ' + e.message); }
+}
+
+// ════════════════════════════════════════
+// BULK SELECTION
+// ════════════════════════════════════════
+let selectedCards = new Set(); // Set of "carteira|cardId"
+
+function onRowCheck(el) {
+  const key = `${el.dataset.c}|${el.dataset.id}`;
+  const tr = el.closest('tr');
+  if (el.checked) { selectedCards.add(key); tr.classList.add('selected'); }
+  else            { selectedCards.delete(key); tr.classList.remove('selected'); }
+  updateBulkBar();
+}
+
+function toggleSelectAll(el, section, c) {
+  const checks = document.querySelectorAll(`.card-check[data-c="${c}"]`);
+  checks.forEach(ch => {
+    ch.checked = el.checked;
+    const key = `${c}|${ch.dataset.id}`;
+    const tr = ch.closest('tr');
+    if (el.checked) { selectedCards.add(key); tr?.classList.add('selected'); }
+    else            { selectedCards.delete(key); tr?.classList.remove('selected'); }
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const cnt = document.getElementById('bulk-count');
+  cnt.textContent = selectedCards.size;
+  bar.classList.toggle('visible', selectedCards.size > 0);
+  // Populate analista dropdown
+  const sel = document.getElementById('bulk-analista');
+  if (sel.options.length <= 1) {
+    ANALISTAS.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+  }
+}
+
+function clearSelection() {
+  selectedCards.clear();
+  document.querySelectorAll('.card-check').forEach(ch => { ch.checked = false; ch.closest('tr')?.classList.remove('selected'); });
+  document.querySelectorAll('.select-all').forEach(ch => ch.checked = false);
+  updateBulkBar();
+}
+
+async function bulkSetFinalizado(val) {
+  for (const key of selectedCards) {
+    const [c, id] = key.split('|');
+    if (!controlData[c]) controlData[c] = {};
+    if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'' };
+    controlData[c][id].finalizado = val;
+    await persistCtrl(c, id);
+  }
+  clearSelection();
+  CARTEIRAS.forEach(c => renderCarteira(currentSection, c));
+}
+
+async function bulkApplyAnalista() {
+  const analista = document.getElementById('bulk-analista').value;
+  if (!analista) { alert('Selecione um analista primeiro.'); return; }
+  for (const key of selectedCards) {
+    const [c, id] = key.split('|');
+    if (!controlData[c]) controlData[c] = {};
+    if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'' };
+    controlData[c][id].analista = analista;
+    await persistCtrl(c, id);
+  }
+  clearSelection();
+  CARTEIRAS.forEach(c => renderCarteira(currentSection, c));
+}
+
+// Daily auto-sync at 7am Brasília time (UTC-3)
+function scheduleDaily() {
+  function getNextBrasilia7am() {
+    const now = new Date();
+    // Brasília = UTC-3
+    const brasiliaOffset = -3 * 60; // minutes
+    const localOffset = -now.getTimezoneOffset(); // local UTC offset in minutes
+    const diffMs = (brasiliaOffset - localOffset) * 60 * 1000;
+    const nowBrasilia = new Date(now.getTime() + diffMs);
+    const next = new Date(nowBrasilia);
+    next.setHours(7, 0, 0, 0);
+    if (next <= nowBrasilia) next.setDate(next.getDate() + 1);
+    // Convert back to local time for setTimeout
+    return new Date(next.getTime() - diffMs);
+  }
+  const nextSync = getNextBrasilia7am();
+  const msUntil = nextSync - new Date();
+  // Show next sync time in UI
+  const syncEl = document.getElementById('last-sync');
+  if (syncEl) {
+    const iso = localStorage.getItem('auditoria_last_sync');
+    if (iso) {
+      const d = new Date(iso);
+      syncEl.textContent = `Sync: ${d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})} · Próx: 07:00`;
+    }
+  }
+  console.log(`[Auto-sync] Próxima sincronização em ${Math.round(msUntil/60000)} minutos (07h00 Brasília)`);
+  setTimeout(async () => { await syncPipefy(); setTimeout(autoSendGChat, 5000); scheduleDaily(); }, msUntil);
+}
+
+// ════════════════════════════════════════
+// START
+// ════════════════════════════════════════
+// Pre-populate fields from DEFAULT_CONFIG before init
+document.addEventListener('DOMContentLoaded', () => {
+  // Fill in fields from DEFAULT_CONFIG if no saved config
+  const saved = (() => { try { return JSON.parse(localStorage.getItem('auditoria_cfg')); } catch(e){ return null; } })();
+  const cfg = saved || DEFAULT_CONFIG;
+  if (cfg.url)    document.getElementById('supa-url').value     = cfg.url;
+  if (cfg.key)    document.getElementById('supa-key').value     = cfg.key;
+  if (cfg.pipefy) document.getElementById('pipefy-token').value = cfg.pipefy;
+  init();
+  scheduleDaily();
+});
+</script>
+</body>
+</html>
