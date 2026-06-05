@@ -565,6 +565,7 @@ tbody tr.selected td { background: var(--brand-light) !important; }
   finalizado text DEFAULT 'Não',
   analista text DEFAULT '',
   obs text DEFAULT '',
+  validacao text DEFAULT '',
   updated_at timestamptz DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS auditoria_cards (
@@ -1337,7 +1338,7 @@ async function loadSupabaseControls() {
   if (!data) return;
   data.forEach(r => {
     if (!controlData[r.carteira]) controlData[r.carteira] = {};
-    controlData[r.carteira][r.card_id] = { finalizado: r.finalizado||'Não', analista: r.analista||'', obs: r.obs||'' };
+    controlData[r.carteira][r.card_id] = { finalizado: r.finalizado||'Não', analista: r.analista||'', obs: r.obs||'', validacao: r.validacao||'' };
   });
 }
 
@@ -1487,7 +1488,7 @@ function panelHTML(section, c) {
         ${section==='outros'?'<th>Tipo</th>':''}
         <th>Concorrente</th><th>Solicitação</th><th>Fase</th>
         <th>Vencimento</th><th>Link Pipefy</th>
-        <th>Finalizado</th><th>Analista CS</th><th>Observações</th><th>Ação</th>
+        <th>Finalizado</th><th>Analista CS</th><th>Observações</th><th>Validação</th><th>Ação</th>
       </tr></thead>
       <tbody id="tbody-${section}-${s}"></tbody>
     </table>
@@ -1629,14 +1630,14 @@ function renderCarteira(section, c) {
     const msg = total === 0
       ? `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h4"/></svg></div><p>Nenhum card aqui</p><small>Clique em "Sincronizar" para carregar os dados do Pipefy</small></div>`
       : `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><p>Nenhum resultado</p><small>Tente limpar os filtros</small></div>`;
-    tbody.innerHTML = `<tr><td colspan="12">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="13">${msg}</td></tr>`;
     return;
   }
 
   const showTipo = section === 'outros';
   tbody.innerHTML = rows.map(r => {
     const ctrlCart = c === 'Todos' ? (r.carteira || c) : c;
-    const ctrl = controlData[ctrlCart]?.[r.id] || { finalizado:'Não', analista:'', obs:'' };
+    const ctrl = controlData[ctrlCart]?.[r.id] || { finalizado:'Não', analista:'', obs:'', validacao:'' };
     const aOpts = ANALISTAS.map(a => `<option value="${a}"${ctrl.analista===a?' selected':''}>${a}</option>`).join('');
     const col   = TIPOS_CONFIG[r.tipo]?.color || 'desatualizados';
     const dCls  = r.dias_atraso > 30 ? 'days-critical' : r.dias_atraso > 7 ? 'days-warn' : 'days-ok';
@@ -1673,6 +1674,10 @@ function renderCarteira(section, c) {
           onblur="updateCtrl('${r.carteira||c}','${r.id}','obs',this.value,this)">${esc(ctrl.obs||'')}</textarea>
       </td>
       <td>
+        <textarea class="obs-cell" rows="1" placeholder="Validação…"
+          onblur="updateCtrl('${r.carteira||c}','${r.id}','validacao',this.value,this)">${esc(ctrl.validacao||'')}</textarea>
+      </td>
+      <td>
         <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','${esc(r.link_pipefy||'')}')"
           style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:var(--brand-light);border:1px solid rgba(26,188,172,0.3);border-radius:var(--radius-xs);color:var(--brand-dark);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font)"
           onmouseover="this.style.background='var(--brand)';this.style.color='#fff'"
@@ -1694,7 +1699,7 @@ function slugFase(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g,''); 
 let saveTimer = null;
 function updateCtrl(c, id, field, val, el) {
   if (!controlData[c]) controlData[c] = {};
-  if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'' };
+  if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'', validacao:'' };
   controlData[c][id][field] = val;
   if (field === 'finalizado') {
     el.className = 'select-cell' + (val==='Sim'?' sim':' nao');
@@ -1712,7 +1717,7 @@ async function persistCtrl(c, id) {
     try {
       await supabaseClient.from('auditoria_controles').upsert({
         carteira: c, card_id: id,
-        finalizado: d.finalizado, analista: d.analista, obs: d.obs,
+        finalizado: d.finalizado, analista: d.analista, obs: d.obs, validacao: d.validacao||'',
         updated_at: new Date().toISOString()
       }, { onConflict:'card_id' });
     } catch(e) { console.warn('Save err:', e.message); }
@@ -2594,7 +2599,7 @@ async function bulkSetFinalizado(val) {
   for (const key of selectedCards) {
     const [c, id] = key.split('|');
     if (!controlData[c]) controlData[c] = {};
-    if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'' };
+    if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'', validacao:'' };
     controlData[c][id].finalizado = val;
     await persistCtrl(c, id);
   }
@@ -2608,7 +2613,7 @@ async function bulkApplyAnalista() {
   for (const key of selectedCards) {
     const [c, id] = key.split('|');
     if (!controlData[c]) controlData[c] = {};
-    if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'' };
+    if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'', validacao:'' };
     controlData[c][id].analista = analista;
     await persistCtrl(c, id);
   }
