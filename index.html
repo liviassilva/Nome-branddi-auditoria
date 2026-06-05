@@ -1465,12 +1465,12 @@ function panelHTML(section, c) {
   const tipoIcons = {'Vencidos na Fase':'📅','Desatualizados':'🕐','Cadastro de Marketplace':'🛒'};
   const tipoFilter = section === 'outros' ? `
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2)" id="tipo-sel-${s}">
-      <button class="tipo-btn${currentOutroTipo===''?' tipo-active':''}"
+      <button class="tipo-btn${currentOutroTipo===''?' tipo-active':''}" data-tipo=""
         onclick="setOutroTipo('','${c}')"
         style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.15s;border:1px solid ${currentOutroTipo===''?'var(--brand)':'var(--border)'};background:${currentOutroTipo===''?'var(--brand)':'var(--surface)'};color:${currentOutroTipo===''?'#fff':'var(--text2)'}">
         Todos
       </button>
-      ${OUTROS_TIPOS.map(t => `<button class="tipo-btn${currentOutroTipo===t?' tipo-active':''}"
+      ${OUTROS_TIPOS.map(t => `<button class="tipo-btn${currentOutroTipo===t?' tipo-active':''}" data-tipo="${t}"
         onclick="setOutroTipo('${t}','${c}')"
         style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.15s;border:1px solid ${currentOutroTipo===t?'var(--brand)':'var(--border)'};background:${currentOutroTipo===t?'var(--brand)':'var(--surface)'};color:${currentOutroTipo===t?'#fff':'var(--text2)'}">${tipoIcons[t]||''} ${t}</button>`).join('')}
     </div>` : '';
@@ -1577,9 +1577,12 @@ function switchCarteira(c) {
 
 function setOutroTipo(tipo, c) {
   currentOutroTipo = tipo;
-  // Update buttons
-  document.querySelectorAll(`#tipo-sel-${slug(c)} .tipo-btn`).forEach(b => {
-    b.className = 'tipo-btn' + (b.textContent.trim() === tipo ? ' active-'+slug2(tipo) : '');
+  document.querySelectorAll('.tipo-btn').forEach(b => {
+    const btnTipo = b.dataset.tipo !== undefined ? b.dataset.tipo : '';
+    const isActive = btnTipo === tipo;
+    b.style.background  = isActive ? 'var(--brand)' : 'var(--surface)';
+    b.style.color       = isActive ? '#fff'         : 'var(--text2)';
+    b.style.borderColor = isActive ? 'var(--brand)' : 'var(--border)';
   });
   renderCarteira('outros', c);
 }
@@ -1660,9 +1663,9 @@ function renderCarteira(section, c) {
     return `<tr>
       <td style="max-width:170px">
         <div style="display:flex;align-items:flex-start;gap:5px">
-          ${r.link_pipefy ? `<a href="${r.link_pipefy}" target="_blank" title="Abrir no Pipefy" style="flex-shrink:0;margin-top:2px;color:var(--brand);opacity:0.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+          <a href="https://app.pipefy.com/open-cards/${r.id}" target="_blank" title="Abrir no Pipefy" style="flex-shrink:0;margin-top:2px;color:var(--brand);opacity:0.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9"/><path d="M10 2h4v4"/><path d="M7 9L14 2"/></svg>
-          </a>` : ''}
+          </a>
           <div>
             <div class="cell-title">${esc(r.titulo)}</div>
             ${c === 'Todos' ? `<div class="cell-sub" style="color:var(--brand-dark);font-weight:500">${esc(r.carteira||'')}</div>` : ''}
