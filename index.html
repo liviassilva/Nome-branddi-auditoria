@@ -307,7 +307,7 @@ input, select, textarea, button { font-family: var(--font); }
 table { width: 100%; border-collapse: separate; border-spacing: 0; }
 thead { position: sticky; top: 0; z-index: 10; }
 thead th {
-  background: var(--surface2); padding: 9px 12px;
+  background: var(--surface2); padding: 6px 8px;
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.07em; color: var(--text3);
   border-top: 1px solid var(--border); border-bottom: 2px solid var(--border2);
@@ -321,7 +321,7 @@ thead th:last-child  { border-right: 1px solid var(--border); border-radius: 0 v
 tbody tr { transition: background 0.1s; }
 tbody tr:hover td { background: var(--surface2); }
 tbody td {
-  padding: 11px 12px; font-size: 13px; color: var(--text2);
+  padding: 6px 8px; font-size: 12px; color: var(--text2);
   border-bottom: 1px solid var(--border); vertical-align: middle;
   background: var(--surface);
 }
@@ -329,7 +329,7 @@ tbody td:first-child { padding-left: 16px; }
 tbody tr:last-child td { border-bottom: none; }
 
 /* Cell types */
-.cell-title { font-weight: 600; color: var(--text); font-size: 13px; max-width: 260px; }
+.cell-title { font-weight: 600; color: var(--text); font-size: 12px; max-width: 170px; }
 .cell-sub   { font-size: 11px; color: var(--text3); font-weight: 400; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
 
 /* Badges */
@@ -343,8 +343,8 @@ tbody tr:last-child td { border-bottom: none; }
 /* ── Fase badges — cores do Pipefy ── */
 .fase-badge {
   display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 6px;
-  font-size: 12px; font-weight: 500;
+  padding: 2px 7px; border-radius: 6px;
+  font-size: 11px; font-weight: 500;
   font-family: var(--font); white-space: nowrap;
   border-left: 3px solid currentColor;
 }
@@ -385,10 +385,26 @@ tbody tr:last-child td { border-bottom: none; }
 .days-ok       { color: var(--text3); }
 
 /* ══════════════════════════════════════════
+   STICKY ACTION COLUMN
+══════════════════════════════════════════ */
+.col-action-th {
+  position: sticky !important; right: 0; z-index: 6;
+  background: var(--surface2) !important;
+  box-shadow: -3px 0 8px rgba(0,0,0,0.08); min-width: 90px;
+}
+.col-action-td {
+  position: sticky; right: 0; z-index: 4;
+  background: var(--surface) !important;
+  box-shadow: -3px 0 8px rgba(0,0,0,0.06);
+}
+tbody tr:hover .col-action-td { background: var(--surface2) !important; }
+tbody tr.selected .col-action-td { background: var(--brand-light) !important; }
+
+/* ══════════════════════════════════════════
    EDITABLE CELLS
 ══════════════════════════════════════════ */
 .select-cell {
-  padding: 5px 8px; background: var(--surface2);
+  padding: 4px 6px; background: var(--surface2);
   border: 1px solid var(--border); border-radius: var(--radius-xs);
   color: var(--text); font-size: 12px; font-weight: 500;
   outline: none; cursor: pointer; transition: all 0.13s;
@@ -400,7 +416,7 @@ tbody tr:last-child td { border-bottom: none; }
 .select-cell.analista { min-width: 120px; }
 
 .obs-cell {
-  width: 100%; min-width: 180px; padding: 5px 8px;
+  width: 100%; min-width: 90px; padding: 4px 6px;
   background: transparent; border: 1px solid transparent;
   border-radius: var(--radius-xs); color: var(--text); font-size: 12px;
   outline: none; resize: none; transition: all 0.13s;
@@ -1487,8 +1503,8 @@ function panelHTML(section, c) {
         <th>Título</th>
         ${section==='outros'?'<th>Tipo</th>':''}
         <th>Concorrente</th><th>Solicitação</th><th>Fase</th>
-        <th>Vencimento</th><th>Link Pipefy</th>
-        <th>Finalizado</th><th>Analista CS</th><th>Observações</th><th>Validação</th><th>Ação</th>
+        <th>Vencimento</th>
+        <th>Finalizado</th><th>Analista CS</th><th>Observações</th><th>Validação</th><th class="col-action-th">Ação</th>
       </tr></thead>
       <tbody id="tbody-${section}-${s}"></tbody>
     </table>
@@ -1630,7 +1646,7 @@ function renderCarteira(section, c) {
     const msg = total === 0
       ? `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h4"/></svg></div><p>Nenhum card aqui</p><small>Clique em "Sincronizar" para carregar os dados do Pipefy</small></div>`
       : `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><p>Nenhum resultado</p><small>Tente limpar os filtros</small></div>`;
-    tbody.innerHTML = `<tr><td colspan="13">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10">${msg}</td></tr>`;
     return;
   }
 
@@ -1642,20 +1658,22 @@ function renderCarteira(section, c) {
     const col   = TIPOS_CONFIG[r.tipo]?.color || 'desatualizados';
     const dCls  = r.dias_atraso > 30 ? 'days-critical' : r.dias_atraso > 7 ? 'days-warn' : 'days-ok';
     return `<tr>
-      <td>
-        <div class="cell-title">${esc(r.titulo)}</div>
-        ${c === 'Todos' ? `<div class="cell-sub" style="color:var(--brand-dark);font-weight:500">${esc(r.carteira||'')}</div>` : ''}
+      <td style="max-width:170px">
+        <div style="display:flex;align-items:flex-start;gap:5px">
+          ${r.link_pipefy ? `<a href="${r.link_pipefy}" target="_blank" title="Abrir no Pipefy" style="flex-shrink:0;margin-top:2px;color:var(--brand);opacity:0.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9"/><path d="M10 2h4v4"/><path d="M7 9L14 2"/></svg>
+          </a>` : ''}
+          <div>
+            <div class="cell-title">${esc(r.titulo)}</div>
+            ${c === 'Todos' ? `<div class="cell-sub" style="color:var(--brand-dark);font-weight:500">${esc(r.carteira||'')}</div>` : ''}
+          </div>
+        </div>
       </td>
       ${showTipo ? `<td><span class="badge b-${col}">${r.tipo}</span></td>` : ''}
-      <td style="font-size:12px">${esc(r.concorrente||'—')}</td>
-      <td style="font-size:12px;max-width:200px;color:var(--text2)">${esc(r.solicitacao||'—')}</td>
+      <td style="font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.concorrente||'—')}</td>
+      <td style="font-size:11px;max-width:120px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.solicitacao||'')}">${esc(r.solicitacao||'—')}</td>
       <td>${r.fase ? `<span class="fase-badge fase-${slugFase(r.fase)}">${esc(r.fase)}</span>` : '—'}</td>
-      <td style="font-family:var(--mono);font-size:12px">${r.data_vencimento||'—'}</td>
-      <td>
-        ${r.link_pipefy ? `<a href="${r.link_pipefy}" target="_blank" style="color:var(--brand);font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 8px;border:1px solid rgba(26,188,172,0.3);border-radius:6px;">
-          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9"/><path d="M10 2h4v4"/><path d="M7 9L14 2"/></svg>
-          Abrir</a>` : '—'}
-      </td>
+      <td style="font-family:var(--mono);font-size:11px;white-space:nowrap">${r.data_vencimento||'—'}</td>
       <td>
         <select class="select-cell${ctrl.finalizado==='Sim'?' sim':' nao'}"
           onchange="updateCtrl('${r.carteira||c}','${r.id}','finalizado',this.value,this)">
@@ -1677,7 +1695,7 @@ function renderCarteira(section, c) {
         <textarea class="obs-cell" rows="1" placeholder="Validação…"
           onblur="updateCtrl('${r.carteira||c}','${r.id}','validacao',this.value,this)">${esc(ctrl.validacao||'')}</textarea>
       </td>
-      <td>
+      <td class="col-action-td">
         <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','${esc(r.link_pipefy||'')}')"
           style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:var(--brand-light);border:1px solid rgba(26,188,172,0.3);border-radius:var(--radius-xs);color:var(--brand-dark);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font)"
           onmouseover="this.style.background='var(--brand)';this.style.color='#fff'"
