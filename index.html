@@ -1402,7 +1402,7 @@ function buildCarteirasTabs() {
     <button class="carteira-tab${c===currentCarteira?' active':''}" data-c="${c}" onclick="switchCarteira('${c}')">
       ${c} <span class="carteira-count" id="cnt-${slug(c)}">0</span>
     </button>`).join('');
-  const todosTab = `<button class="carteira-tab outros-only${currentCarteira==='Todos'?' active':''}" data-c="Todos" id="tab-todos" onclick="switchCarteira('Todos')" style="display:none">
+  const todosTab = `<button class="carteira-tab todos-tab${currentCarteira==='Todos'?' active':''}" data-c="Todos" id="tab-todos" onclick="switchCarteira('Todos')" style="display:none">
       Todos <span class="carteira-count" id="cnt-todos">0</span>
     </button>`;
   nav.innerHTML = tabs + todosTab;
@@ -1422,11 +1422,11 @@ function buildPanels() {
       cp.innerHTML = panelHTML(section, c);
       sp.appendChild(cp);
     });
-    // Aba "Todos" — apenas para seção outros
-    if (section === 'outros') {
+    // Aba "Todos" — para seção outros e atrasos
+    if (section === 'outros' || section === 'atrasos') {
       const cpTodos = document.createElement('div');
       cpTodos.className = 'carteira-panel';
-      cpTodos.id = 'cp-outros-todos';
+      cpTodos.id = `cp-${section}-todos`;
       cpTodos.innerHTML = panelHTML(section, 'Todos');
       sp.appendChild(cpTodos);
     }
@@ -1537,10 +1537,11 @@ function switchSection(section) {
   document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`sp-${section}`)?.classList.add('active');
 
-  // Mostrar aba "Todos" apenas na seção outros
+  // Mostrar aba "Todos" em atrasos e outros
   const tabTodos = document.getElementById('tab-todos');
-  if (tabTodos) tabTodos.style.display = section === 'outros' ? '' : 'none';
-  if (currentCarteira === 'Todos' && section !== 'outros') currentCarteira = CARTEIRAS[0];
+  const showTodos = section === 'outros' || section === 'atrasos';
+  if (tabTodos) tabTodos.style.display = showTodos ? '' : 'none';
+  if (currentCarteira === 'Todos' && !showTodos) currentCarteira = CARTEIRAS[0];
 
   updateCarteiraCounts();
   switchCarteira(currentCarteira);
@@ -1551,7 +1552,7 @@ function switchCarteira(c) {
   document.querySelectorAll('.carteira-tab').forEach(b => b.classList.toggle('active', b.dataset.c === c));
   // Hide all carteira panels in both sections, show active
   document.querySelectorAll('.carteira-panel').forEach(p => p.classList.remove('active'));
-  const panelId = c === 'Todos' ? 'cp-outros-todos' : `cp-${currentSection}-${slug(c)}`;
+  const panelId = c === 'Todos' ? `cp-${currentSection}-todos` : `cp-${currentSection}-${slug(c)}`;
   const panel = document.getElementById(panelId);
   if (panel) panel.classList.add('active');
   renderCarteira(currentSection, c);
@@ -1583,7 +1584,7 @@ function renderCarteira(section, c) {
   const fFase  = document.querySelector(`.filter-fase[data-section="${section}"][data-c="${c}"]`)?.value || '';
   const fSolic = document.querySelector(`.filter-solic[data-section="${section}"][data-c="${c}"]`)?.value || '';
 
-  // Aba "Todos": agrega dados de todas as carteiras
+  // Aba "Todos": agrega dados de todas as carteiras da seção atual
   const allRows = c === 'Todos'
     ? CARTEIRAS.flatMap(cart => (allData[`${section}_${cart}`] || []).map(r => ({...r, carteira: cart})))
     : allData[`${section}_${c}`] || [];
@@ -1748,10 +1749,10 @@ function updateCarteiraCounts() {
     const el     = document.getElementById(`cnt-${slug(c)}`);
     if (el) el.textContent = count;
   });
-  // Contar total para aba Todos (sempre baseado em outros)
+  // Contar total para aba Todos (baseado na seção atual)
   const elTodos = document.getElementById('cnt-todos');
   if (elTodos) {
-    const totalTodos = CARTEIRAS.reduce((n,c) => n + (allData[`outros_${c}`]||[]).length, 0);
+    const totalTodos = CARTEIRAS.reduce((n,c) => n + (allData[`${currentSection}_${c}`]||[]).length, 0);
     elTodos.textContent = totalTodos;
   }
   // Section chips
