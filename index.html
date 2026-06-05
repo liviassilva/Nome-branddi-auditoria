@@ -1696,7 +1696,7 @@ function renderCarteira(section, c) {
           onblur="updateCtrl('${r.carteira||c}','${r.id}','validacao',this.value,this)">${esc(ctrl.validacao||'')}</textarea>
       </td>
       <td class="col-action-td">
-        <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','${esc(r.link_pipefy||'')}')"
+        <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','https://app.pipefy.com/open-cards/${r.id}','${esc(r.link_pipefy||'')}')"
           style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:var(--brand-light);border:1px solid rgba(26,188,172,0.3);border-radius:var(--radius-xs);color:var(--brand-dark);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font)"
           onmouseover="this.style.background='var(--brand)';this.style.color='#fff'"
           onmouseout="this.style.background='var(--brand-light)';this.style.color='var(--brand-dark)'">
@@ -2224,6 +2224,7 @@ function openConfig() { document.getElementById('config-modal').classList.remove
 let _commentCardId   = '';
 let _commentCardName = '';
 let _commentLinkAtv  = ''; // link no pipe Atendimento - Atividades do Cliente
+let _commentLinkOpec = ''; // link do card no pipe OPEC (Jornada de Notificações)
 
 // ════════════════════════════════════════
 // COMMENT TEMPLATES
@@ -2271,10 +2272,11 @@ function applyTemplate(tpl) {
   } else { ta.focus(); }
 }
 
-function openCommentModal(cardId, cardName, linkAtividades) {
+function openCommentModal(cardId, cardName, linkAtividades, linkOpec) {
   _commentCardId   = cardId;
   _commentCardName = cardName;
   _commentLinkAtv  = linkAtividades;
+  _commentLinkOpec = linkOpec || '';
 
   document.getElementById('comment-card-name').textContent = cardName;
   document.getElementById('comment-text').value = '';
@@ -2328,9 +2330,8 @@ ${_commentLinkAtv || ''}`.trim();
   showStatus('info', 'Publicando comentário…');
 
   // Card ID no pipe Atendimento - Atividades do Cliente = _commentCardId
-  // Card ID no OPEC = extraído do link_pipefy (link do card no Pipefy dentro do card de Atendimento)
-  // The link_pipefy field contains the OPEC card link e.g. https://app.pipefy.com/open-cards/12345
-  const opecCardId = _commentLinkAtv ? _commentLinkAtv.split('/').pop() : null;
+  // Card ID no OPEC = extraído do link_pipefy (campo do card de Atendimento)
+  const opecCardId = _commentLinkOpec ? _commentLinkOpec.split('/').pop() : null;
 
   const newDueDate = document.getElementById('comment-due-date').value;
   const newPhaseId = document.getElementById('comment-phase').value;
