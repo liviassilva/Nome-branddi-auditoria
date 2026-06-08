@@ -1842,7 +1842,7 @@ function renderCarteira(section, c) {
           onblur="updateCtrl('${r.carteira||c}','${r.id}','validacao',this.value,this)">${esc(ctrl.validacao||'')}</textarea>
       </td>
       <td class="col-action-td">
-        <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','https://app.pipefy.com/open-cards/${r.id}','${esc(r.link_pipefy||'')}')"
+        <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','https://app.pipefy.com/open-cards/${r.id}','${esc(r.link_pipefy||'')}','','${esc(r.fase||'')}')"
           style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:var(--brand-light);border:1px solid rgba(26,188,172,0.3);border-radius:var(--radius-xs);color:var(--brand-dark);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font)"
           onmouseover="this.style.background='var(--brand)';this.style.color='#fff'"
           onmouseout="this.style.background='var(--brand-light)';this.style.color='var(--brand-dark)'">
@@ -2418,11 +2418,12 @@ function applyTemplate(tpl) {
   } else { ta.focus(); }
 }
 
-function openCommentModal(cardId, cardName, linkAtividades, linkOpec) {
+function openCommentModal(cardId, cardName, linkAtividades, linkOpec, section, faseAtual) {
   _commentCardId   = cardId;
   _commentCardName = cardName;
   _commentLinkAtv  = linkAtividades;
   _commentLinkOpec = linkOpec || '';
+  _commentSection  = section || '';
 
   document.getElementById('comment-card-name').textContent = cardName;
   document.getElementById('comment-text').value = '';
@@ -2432,7 +2433,8 @@ function openCommentModal(cardId, cardName, linkAtividades, linkOpec) {
   document.getElementById('comment-due-date').value = '';
   // Reset phase selector
   const phaseSelect = document.getElementById('comment-phase');
-  phaseSelect.innerHTML = '<option value="">— Manter fase atual —</option>';
+  const faseLabel = faseAtual ? `Manter fase atual: ${faseAtual}` : '— Manter fase atual —';
+  phaseSelect.innerHTML = `<option value="">${faseLabel}</option>`;
   document.getElementById('comment-modal').classList.remove('hidden');
   // Load phases async
   applyTemplate('livre');
