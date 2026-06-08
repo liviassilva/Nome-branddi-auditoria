@@ -1501,6 +1501,12 @@ function panelHTML(section, c) {
   <div class="table-wrap">
     <table>
       <thead><tr>
+        <th style="width:32px;padding:6px 8px">
+          <input type="checkbox" class="select-all" data-section="${section}" data-c="${c}"
+            onclick="toggleSelectAll(this,'${section}','${c}')"
+            title="Selecionar todos"
+            style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer"/>
+        </th>
         <th>Título</th>
         ${section==='outros'?'<th>Tipo</th>':''}
         <th>Concorrente</th><th>Solicitação</th><th>Fase</th>
@@ -1650,7 +1656,7 @@ function renderCarteira(section, c) {
     const msg = total === 0
       ? `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h4"/></svg></div><p>Nenhum card aqui</p><small>Clique em "Sincronizar" para carregar os dados do Pipefy</small></div>`
       : `<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><p>Nenhum resultado</p><small>Tente limpar os filtros</small></div>`;
-    tbody.innerHTML = `<tr><td colspan="10">${msg}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12">${msg}</td></tr>`;
     return;
   }
 
@@ -1662,6 +1668,11 @@ function renderCarteira(section, c) {
     const col   = TIPOS_CONFIG[r.tipo]?.color || 'desatualizados';
     const dCls  = r.dias_atraso > 30 ? 'days-critical' : r.dias_atraso > 7 ? 'days-warn' : 'days-ok';
     return `<tr>
+      <td style="width:32px;padding:6px 8px;text-align:center">
+        <input type="checkbox" class="card-check" data-id="${r.id}" data-c="${ctrlCart}"
+          onclick="onRowCheck(this)"
+          style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer"/>
+      </td>
       <td style="max-width:170px">
         <div style="display:flex;align-items:flex-start;gap:5px">
           <a href="https://app.pipefy.com/open-cards/${r.id}" target="_blank" title="Abrir no Pipefy" style="flex-shrink:0;margin-top:2px;color:var(--brand);opacity:0.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
@@ -2587,10 +2598,15 @@ function onRowCheck(el) {
 }
 
 function toggleSelectAll(el, section, c) {
-  const checks = document.querySelectorAll(`.card-check[data-c="${c}"]`);
+  // Seleciona todos os checkboxes visíveis no painel ativo
+  const activePanel = document.querySelector('.carteira-panel.active');
+  const checks = activePanel
+    ? activePanel.querySelectorAll('.card-check')
+    : document.querySelectorAll(`.card-check[data-c="${c}"]`);
   checks.forEach(ch => {
     ch.checked = el.checked;
-    const key = `${c}|${ch.dataset.id}`;
+    const cardC = ch.dataset.c || c;
+    const key = `${cardC}|${ch.dataset.id}`;
     const tr = ch.closest('tr');
     if (el.checked) { selectedCards.add(key); tr?.classList.add('selected'); }
     else            { selectedCards.delete(key); tr?.classList.remove('selected'); }
