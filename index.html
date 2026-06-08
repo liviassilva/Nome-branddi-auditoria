@@ -846,7 +846,7 @@ const TIPOS_CONFIG = {
   // Exclui: Churn, Mais de 12 meses, StandBy
   'Vencidos na Fase': {
     reportId:'300823144', pipeId:'302483272', section:'outros', color:'vencidos',
-    // Fases válidas (hardcoded do Ver Fases): exclui StandBy, Pós OnBoarding, Mais de 12 meses, Renovação, Churn
+    // Fases válidas (hardcoded do Ver Fases): exclui StandBy, Mais de 12 meses, Renovação, Churn
     phaseIds: ['319903875','315618617','315618613','316630051','315618614','315618615','315618616','317119747','317119748','333615572'],
     fases: null,
     excludeFases: ['churn'], // fallback client-side — exclui Churn puro (não Em reversão)
@@ -2504,7 +2504,6 @@ async function autoDetectPhases() {
       const n = p.name.toLowerCase().trim();
       if (n === 'mais de 12 meses') return false;  // exact
       if (n === 'standby')          return false;  // exact
-      if (n === 'pós onboarding')   return false;  // exact
       if (n === 'renovação')        return false;  // exact
       if (n === 'churn')            return false;  // exact — NOT 'em reversão'
       if (n.includes('churn') && !n.includes('revers')) return false;
