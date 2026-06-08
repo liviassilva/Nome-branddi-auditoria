@@ -435,6 +435,7 @@ tbody tr.selected .col-action-td { background: var(--brand-light) !important; }
   background: transparent; border: 1px solid transparent;
   border-radius: var(--radius-xs); color: var(--text); font-size: 12px;
   outline: none; resize: none; transition: all 0.13s;
+  overflow: hidden; line-height: 1.5; min-height: 28px;
 }
 .obs-cell::placeholder { color: var(--text3); }
 .obs-cell:hover { border-color: var(--border); background: var(--surface2); }
@@ -1796,6 +1797,7 @@ function renderCarteira(section, c) {
   }
 
   const showTipo = section === 'outros';
+  setTimeout(autoResizeAll, 50);
   tbody.innerHTML = rows.map(r => {
     const ctrlCart = c === 'Todos' ? (r.carteira || c) : c;
     const ctrl = controlData[ctrlCart]?.[r.id] || { finalizado:'Não', analista:'', obs:'', validacao:'' };
@@ -1839,11 +1841,13 @@ function renderCarteira(section, c) {
       </td>
       <td>
         <textarea class="obs-cell" rows="1" placeholder="Observação…"
-          onblur="updateCtrl('${r.carteira||c}','${r.id}','obs',this.value,this)">${esc(ctrl.obs||'')}</textarea>
+          oninput="autoResize(this)"
+          onblur="autoResize(this);updateCtrl('${r.carteira||c}','${r.id}','obs',this.value,this)">${esc(ctrl.obs||'')}</textarea>
       </td>
       <td>
         <textarea class="obs-cell" rows="1" placeholder="Validação…"
-          onblur="updateCtrl('${r.carteira||c}','${r.id}','validacao',this.value,this)">${esc(ctrl.validacao||'')}</textarea>
+          oninput="autoResize(this)"
+          onblur="autoResize(this);updateCtrl('${r.carteira||c}','${r.id}','validacao',this.value,this)">${esc(ctrl.validacao||'')}</textarea>
       </td>
       <td class="col-action-td">
         <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','https://app.pipefy.com/open-cards/${r.id}','${esc(r.link_pipefy||'')}','','${esc(r.fase||'')}')"
@@ -1859,6 +1863,14 @@ function renderCarteira(section, c) {
 }
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.max(28, el.scrollHeight) + 'px';
+}
+function autoResizeAll() {
+  document.querySelectorAll('.obs-cell').forEach(el => autoResize(el));
+}
 function slugFase(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g,''); }
 
 // ════════════════════════════════════════
