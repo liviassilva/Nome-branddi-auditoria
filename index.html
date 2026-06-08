@@ -2565,10 +2565,11 @@ async function loadPipefyPhases() {
 }
 
 function populatePhaseSelect(select, phases) {
-  // Show only relevant phases (exclude negativação, marketplace, concluídos)
-  const excluded = ['backlog - solicitações','enviado - solicitação de neg','cs - negativ','cadastro de marketplace','concluídos'];
+  // Preservar o label da primeira opção (já tem a fase atual)
+  const firstLabel = select.options[0]?.text || '— Manter fase atual —';
+  const excluded = ['backlog - solicitações','enviado - solicitação de neg','cs - negativ','cadastro de marketplace'];
   const filtered = phases.filter(p => !excluded.some(e => p.name.toLowerCase().includes(e)));
-  select.innerHTML = '<option value="">— Manter fase atual —</option>';
+  select.innerHTML = `<option value="">${firstLabel}</option>`;
   filtered.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p.id;
