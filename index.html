@@ -386,6 +386,20 @@ tbody tr:last-child td { border-bottom: none; }
 .days-ok       { color: var(--text3); }
 
 /* ══════════════════════════════════════════
+   SORTABLE HEADERS
+══════════════════════════════════════════ */
+.th-sort {
+  cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: 4px;
+  white-space: nowrap;
+}
+.th-sort:hover { color: var(--text); }
+.sort-icon { font-size: 10px; opacity: 0.4; transition: opacity 0.15s; }
+.th-sort:hover .sort-icon { opacity: 0.8; }
+.sort-icon.asc  { opacity: 1; color: var(--brand); }
+.sort-icon.desc { opacity: 1; color: var(--brand); }
+
+/* ══════════════════════════════════════════
    STICKY ACTION COLUMN
 ══════════════════════════════════════════ */
 .col-action-th {
@@ -915,6 +929,35 @@ let controlData = {}; // carteira -> { cardId -> {finalizado,analista,obs} }
 CARTEIRAS.forEach(c => { controlData[c] = {}; });
 ['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
 
+// Sort state: { section_carteira: { field, dir } }
+const sortState = {};
+
+function sortTable(section, c, field) {
+  const key = `${section}_${c}`;
+  const cur = sortState[key];
+  // Toggle: asc → desc → off
+  if (cur?.field === field) {
+    if (cur.dir === 'asc') sortState[key] = { field, dir: 'desc' };
+    else delete sortState[key];
+  } else {
+    sortState[key] = { field, dir: 'asc' };
+  }
+  renderCarteira(section, c);
+  // Atualizar ícones
+  ['titulo','concorrente','solicitacao','fase','data_vencimento'].forEach(f => {
+    const el = document.getElementById(`si-${f}-${section}-${slug(c)}`);
+    if (!el) return;
+    const st = sortState[key];
+    if (st?.field === f) {
+      el.textContent = st.dir === 'asc' ? '↑' : '↓';
+      el.className = 'sort-icon ' + st.dir;
+    } else {
+      el.textContent = '⇅';
+      el.className = 'sort-icon';
+    }
+  });
+}
+
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
@@ -1267,6 +1310,35 @@ async function clearAndSync() {
   showSyncBanner('Limpando cache local…', 3);
   // Clear local state
   ['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
+
+// Sort state: { section_carteira: { field, dir } }
+const sortState = {};
+
+function sortTable(section, c, field) {
+  const key = `${section}_${c}`;
+  const cur = sortState[key];
+  // Toggle: asc → desc → off
+  if (cur?.field === field) {
+    if (cur.dir === 'asc') sortState[key] = { field, dir: 'desc' };
+    else delete sortState[key];
+  } else {
+    sortState[key] = { field, dir: 'asc' };
+  }
+  renderCarteira(section, c);
+  // Atualizar ícones
+  ['titulo','concorrente','solicitacao','fase','data_vencimento'].forEach(f => {
+    const el = document.getElementById(`si-${f}-${section}-${slug(c)}`);
+    if (!el) return;
+    const st = sortState[key];
+    if (st?.field === f) {
+      el.textContent = st.dir === 'asc' ? '↑' : '↓';
+      el.className = 'sort-icon ' + st.dir;
+    } else {
+      el.textContent = '⇅';
+      el.className = 'sort-icon';
+    }
+  });
+}
   rebuildAll();
   // Clear Supabase in batches: fetch all IDs then delete them
   if (supabaseClient) {
@@ -1309,6 +1381,35 @@ function fmtDate(str) {
 // ════════════════════════════════════════
 function processCards(cards) {
   ['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
+
+// Sort state: { section_carteira: { field, dir } }
+const sortState = {};
+
+function sortTable(section, c, field) {
+  const key = `${section}_${c}`;
+  const cur = sortState[key];
+  // Toggle: asc → desc → off
+  if (cur?.field === field) {
+    if (cur.dir === 'asc') sortState[key] = { field, dir: 'desc' };
+    else delete sortState[key];
+  } else {
+    sortState[key] = { field, dir: 'asc' };
+  }
+  renderCarteira(section, c);
+  // Atualizar ícones
+  ['titulo','concorrente','solicitacao','fase','data_vencimento'].forEach(f => {
+    const el = document.getElementById(`si-${f}-${section}-${slug(c)}`);
+    if (!el) return;
+    const st = sortState[key];
+    if (st?.field === f) {
+      el.textContent = st.dir === 'asc' ? '↑' : '↓';
+      el.className = 'sort-icon ' + st.dir;
+    } else {
+      el.textContent = '⇅';
+      el.className = 'sort-icon';
+    }
+  });
+}
   let noCarteira = 0, placed = 0;
   cards.forEach(card => {
     const carteira = card.carteira || 'Sem Carteira';
@@ -1507,10 +1608,22 @@ function panelHTML(section, c) {
             title="Selecionar todos"
             style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer"/>
         </th>
-        <th>Título</th>
+        <th onclick="sortTable('${section}','${c}','titulo')" title="Ordenar por Título">
+          <span class="th-sort">Título <span class="sort-icon" id="si-titulo-${section}-${slug(c)}">⇅</span></span>
+        </th>
         ${section==='outros'?'<th>Tipo</th>':''}
-        <th>Concorrente</th><th>Solicitação</th><th>Fase</th>
-        <th>Vencimento</th>
+        <th onclick="sortTable('${section}','${c}','concorrente')" title="Ordenar por Concorrente">
+          <span class="th-sort">Concorrente <span class="sort-icon" id="si-concorrente-${section}-${slug(c)}">⇅</span></span>
+        </th>
+        <th onclick="sortTable('${section}','${c}','solicitacao')" title="Ordenar por Solicitação">
+          <span class="th-sort">Solicitação <span class="sort-icon" id="si-solicitacao-${section}-${slug(c)}">⇅</span></span>
+        </th>
+        <th onclick="sortTable('${section}','${c}','fase')" title="Ordenar por Fase">
+          <span class="th-sort">Fase <span class="sort-icon" id="si-fase-${section}-${slug(c)}">⇅</span></span>
+        </th>
+        <th onclick="sortTable('${section}','${c}','data_vencimento')" title="Ordenar por Vencimento">
+          <span class="th-sort">Vencimento <span class="sort-icon" id="si-data_vencimento-${section}-${slug(c)}">⇅</span></span>
+        </th>
         <th>Finalizado</th><th>Analista CS</th><th>Observações</th><th>Validação</th><th class="col-action-th">Ação</th>
       </tr></thead>
       <tbody id="tbody-${section}-${s}"></tbody>
@@ -1651,6 +1764,24 @@ function renderCarteira(section, c) {
     </div>
     <span class="stat-pill green"><span class="stat-dot"></span>${done} ok</span>
     <span class="stat-pill red"><span class="stat-dot"></span>${total-done} pend.</span>`;
+
+  // Aplicar ordenação
+  const sortKey = `${section}_${c}`;
+  const sort = sortState[sortKey];
+  if (sort) {
+    rows = [...rows].sort((a, b) => {
+      let va = (a[sort.field] || '').toString().toLowerCase();
+      let vb = (b[sort.field] || '').toString().toLowerCase();
+      // Para datas no formato dd/mm/aaaa, converter para comparação
+      if (sort.field === 'data_vencimento') {
+        const toISO = s => s ? s.split('/').reverse().join('-') : '';
+        va = toISO(a.data_vencimento); vb = toISO(b.data_vencimento);
+      }
+      if (va < vb) return sort.dir === 'asc' ? -1 : 1;
+      if (va > vb) return sort.dir === 'asc' ?  1 : -1;
+      return 0;
+    });
+  }
 
   if (!rows.length) {
     const msg = total === 0
