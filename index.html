@@ -1074,7 +1074,12 @@ async function syncPipefy() {
     showSyncBanner('Processando…', 92);
     processCards(allCards);
     showSyncBanner('Salvando…', 96);
-    if (supabaseClient) await saveCardsToSupabase(allCards);
+    if (supabaseClient) {
+      await saveCardsToSupabase(allCards);
+      // Recarregar TUDO do Supabase (incluindo cards já concluídos que não voltam do Pipefy)
+      showSyncBanner('Carregando histórico…', 98);
+      await loadSupabaseCards();
+    }
     showSyncBanner('Concluído!', 100);
     setTimeout(hideSyncBanner, 1500);
     localStorage.setItem('auditoria_last_sync', new Date().toISOString());
@@ -1379,8 +1384,12 @@ function fmtDate(str) {
 // ════════════════════════════════════════
 // PROCESS CARDS
 // ════════════════════════════════════════
-function processCards(cards) {
-  ['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
+function processCards(cards, merge = false) {
+  // Se merge=false (sync completo), zera e recarrega
+  // Se merge=true, apenas adiciona/atualiza sem apagar existentes
+  if (!merge) {
+    ['atrasos','negacoes','outros'].forEach(s => CARTEIRAS.forEach(c => { allData[`${s}_${c}`] = []; }));
+  }
 
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
@@ -1463,7 +1472,8 @@ async function loadSupabaseControls() {
 async function saveCardsToSupabase(cards) {
   if (!supabaseClient || !cards.length) return;
   const ts = new Date().toISOString();
-  // Upsert in batches of 50 (insert or update by primary key)
+  // Upsert em lotes de 50 — apenas insere/atualiza, NUNCA deleta
+  // Cards concluídos saem do relatório do Pipefy mas ficam no Supabase para manter histórico
   for (let i = 0; i < cards.length; i += 50) {
     const { error } = await supabaseClient
       .from('auditoria_cards')
@@ -1473,13 +1483,7 @@ async function saveCardsToSupabase(cards) {
       );
     if (error) console.warn('Upsert batch error:', error.message);
   }
-  // Remove stale cards (ids not in current sync)
-  const currentIds = cards.map(c => c.id);
-  const { error: delErr } = await supabaseClient
-    .from('auditoria_cards')
-    .delete()
-    .not('id', 'in', `(${currentIds.map(id => `"${id}"`).join(',')})`);
-  if (delErr) console.warn('Stale delete error:', delErr.message);
+  // NÃO deletar cards ausentes — o histórico de concluídos deve ser preservado
 }
 
 function setupRealtime() {
