@@ -842,7 +842,7 @@ const DEFAULT_CONFIG = {
 };
 
 const CARTEIRAS = ['Black 1','Black 2','Black 3','Platinum 1','Platinum 2','Titanium 1','Titanium 2','Sem Carteira'];
-const ANALISTAS = ['Julia R.','Julia C.','Laura','Aline','Amaore','Ana Paula','Ana Vitória','Everton','Giovanna','Keila','Lívia','Maria Eduarda','Railanne','Yasmim','Helen','Karoline'];
+const ANALISTAS = ['Julia R.','Julia C.','Laura','Aline','Amaore','Ana Paula','Ana Vitória','Giovanna','Keila','Lívia','Maria Eduarda','Railanne','Yasmim','Helen','Karoline'];
 
 const TIPOS_CONFIG = {
   // Atrasos: fases StandBy + Doing + Enviado para Cliente/Solicitante
@@ -2150,14 +2150,17 @@ function renderResumo() {
           ${(() => {
             // Meta = total de atrasos nas carteiras responsáveis
             const metas = {
-              'Yasmim': ['Titanium 1','Black 2'],
-              'Aline':  ['Titanium 2','Platinum 1'],
-              'Amaore': ['Black 1','Black 3','Platinum 2'],
+              'Yasmim':   { carteiras: ['Titanium 1','Black 2'] },
+              'Aline':    { carteiras: ['Titanium 2','Platinum 1'] },
+              'Amaore':   { carteiras: ['Black 1','Black 3'] },
+              'Railanne': { carteiras: ['Platinum 2'], negacoes: true },
             };
             return ANALISTAS_PAINEL.map((a,i) => {
               const count = analistaStats[a].total;
-              const cartResp = metas[a] || [];
-              const meta = cartResp.reduce((n,c) => n+(atrasoByCarteira[c]?.total||0), 0);
+              const metaObj = metas[a] || { carteiras: [] };
+              const cartResp = metaObj.carteiras || [];
+              const totalNegMeta = metaObj.negacoes ? CARTEIRAS.reduce((n,c) => n+(allData[`negacoes_${c}`]||[]).length, 0) : 0;
+              const meta = cartResp.reduce((n,c) => n+(atrasoByCarteira[c]?.total||0), 0) + totalNegMeta;
               const hasMeta = meta > 0;
               const pctMeta = hasMeta ? Math.min(100, Math.round(count/meta*100)) : 0;
               const barColor = !hasMeta ? 'var(--brand)' : pctMeta>=100 ? 'var(--green)' : pctMeta>=60 ? 'var(--amber)' : 'var(--red)';
@@ -2168,7 +2171,7 @@ function renderResumo() {
                     <span style="width:22px;height:22px;border-radius:50%;background:var(--brand-light);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--brand-dark)">${i+1}</span>
                     <div>
                       <div style="font-size:13px;font-weight:700;color:var(--text)">${a}</div>
-                      ${cartResp.length ? `<div style="font-size:10px;color:var(--text3)">${cartResp.join(' · ')}</div>` : '<div style="font-size:10px;color:var(--text3)">Sem carteira definida</div>'}
+                      ${(cartResp.length || metaObj.negacoes) ? `<div style="font-size:10px;color:var(--text3)">${[...cartResp, ...(metaObj.negacoes ? ['CS - Negativações'] : [])].join(' · ')}</div>` : '<div style="font-size:10px;color:var(--text3)">Sem carteira definida</div>'}
                     </div>
                   </div>
                   <div style="text-align:right">
