@@ -688,7 +688,7 @@ CREATE TABLE IF NOT EXISTS auditoria_cards (
         style="padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:all 0.15s;width:200px"
         onfocus="this.style.borderColor='var(--brand)';this.style.boxShadow='0 0 0 3px var(--brand-mid)'"
         onblur="this.style.borderColor='';this.style.boxShadow=''"/>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">Se preenchido, atualiza o vencimento no pipe Atendimento - Atividades do Cliente</div>
+      <div id="duedate-hint" style="font-size:11px;color:var(--text3);margin-top:4px">Se preenchido, atualiza o vencimento no pipe Atendimento - Atividades do Cliente</div>
     </div>
 
     <div class="form-group" style="margin-top:12px;margin-bottom:0">
@@ -701,10 +701,10 @@ CREATE TABLE IF NOT EXISTS auditoria_cards (
         onblur="this.style.borderColor='';this.style.boxShadow=''">
         <option value="">— Manter fase atual —</option>
       </select>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">Se selecionado, move o card no pipe Atendimento - Atividades do Cliente</div>
+      <div id="phase-hint" style="font-size:11px;color:var(--text3);margin-top:4px">Se selecionado, move o card no pipe Atendimento - Atividades do Cliente</div>
     </div>
 
-    <div style="margin-top:12px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
+    <div id="dois-pipes-info" style="margin-top:12px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3)">
       <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zM8 5v4M8 11v1"/></svg>
       Comentário publicado nos dois pipes automaticamente
     </div>
@@ -914,6 +914,7 @@ const TIPOS_CONFIG = {
 };
 
 const OUTROS_TIPOS = ['Vencidos na Fase','Desatualizados','Cadastro de Marketplace'];
+const MARKETPLACE_PIPE_ID = '306913660';
 const FIELD_CARTEIRA = ['categoria do cliente','carteira','wallet','portfolio','portfólio'];
 const FIELD_RESP     = ['responsável','responsavel','assignee','owner'];
 const FIELD_VENC     = ['data de vencimento','vencimento','due_date','prazo'];
@@ -1247,8 +1248,15 @@ async function fetchCards(reportId, pipeId, tipoNome) {
     let responsavel = node.assignees?.[0]?.name || '';
     if (!responsavel) { for (const k of FIELD_RESP) { if (cf[k]) { responsavel = cf[k]; break; } } }
 
-    // Extra fields: Solicitação, Concorrente, Link
+    // Extra fields: Solicitação, Concorrente, Link, OnBoarding
     let solicitacao = cf['solicitação'] || cf['solicitacao'] || '';
+    let dataOnboarding = cf['data do onboarding'] || cf['data de onboarding'] || cf['onboarding'] || '';
+    if (dataOnboarding) {
+      try {
+        const d = new Date(dataOnboarding.includes('T') ? dataOnboarding : dataOnboarding + 'T00:00:00');
+        if (!isNaN(d)) dataOnboarding = d.toLocaleDateString('pt-BR');
+      } catch(e2) {}
+    }
     // For Marketplace cards, "Marketplace" field maps to concorrente column
     let concorrente = cf['concorrente'] || cf['competitor'] || cf['marketplace'] || '';
     // Link: use "Link do card no Pipefy" field from the card (points to OPEC pipe)
@@ -1308,6 +1316,7 @@ async function fetchCards(reportId, pipeId, tipoNome) {
       carteira, responsavel, fase: node.current_phase?.name || '',
       data_vencimento: dataVenc, dias_atraso: diasAtraso,
       solicitacao, concorrente, link_pipefy: linkPipefy,
+      data_onboarding: dataOnboarding,
       pipe_id: pipeId, report_id: reportId };
   }).filter(Boolean);
 }
@@ -1617,9 +1626,9 @@ function panelHTML(section, c) {
           <span class="th-sort">Título <span class="sort-icon" id="si-titulo-${section}-${slug(c)}">⇅</span></span>
         </th>
         ${section==='outros'?'<th>Tipo</th>':''}
-        <th onclick="sortTable('${section}','${c}','concorrente')" title="Ordenar por Concorrente">
+        ${section!=='outros'?`<th onclick="sortTable('${section}','${c}','concorrente')" title="Ordenar por Concorrente">
           <span class="th-sort">Concorrente <span class="sort-icon" id="si-concorrente-${section}-${slug(c)}">⇅</span></span>
-        </th>
+        </th>`:''}
         <th onclick="sortTable('${section}','${c}','solicitacao')" title="Ordenar por Solicitação">
           <span class="th-sort">Solicitação <span class="sort-icon" id="si-solicitacao-${section}-${slug(c)}">⇅</span></span>
         </th>
@@ -1629,7 +1638,7 @@ function panelHTML(section, c) {
         <th onclick="sortTable('${section}','${c}','data_vencimento')" title="Ordenar por Vencimento">
           <span class="th-sort">Vencimento <span class="sort-icon" id="si-data_vencimento-${section}-${slug(c)}">⇅</span></span>
         </th>
-        <th>Finalizado</th><th>Analista CS</th><th>Observações</th><th>Validação</th><th class="col-action-th">Ação</th>
+        <th>Finalizado</th><th>Analista CS</th>${section!=='outros'?'<th>Observações</th><th>Validação</th>':''}<th class="col-action-th">Ação</th>
       </tr></thead>
       <tbody id="tbody-${section}-${s}"></tbody>
     </table>
@@ -1822,7 +1831,7 @@ function renderCarteira(section, c) {
         </div>
       </td>
       ${showTipo ? `<td><span class="badge b-${col}">${r.tipo}</span></td>` : ''}
-      <td style="font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.concorrente||'—')}</td>
+      ${section!=='outros'?`<td style="font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.concorrente||'—')}</td>`:''}
       <td style="font-size:11px;max-width:120px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.solicitacao||'')}">${esc(r.solicitacao||'—')}</td>
       <td>${r.fase ? `<span class="fase-badge fase-${slugFase(r.fase)}">${esc(r.fase)}</span>` : '—'}</td>
       <td style="font-family:var(--mono);font-size:11px;white-space:nowrap">${r.data_vencimento||'—'}</td>
@@ -1839,18 +1848,18 @@ function renderCarteira(section, c) {
           <option value="">— Analista —</option>${aOpts}
         </select>
       </td>
-      <td>
+      ${section!=='outros'?`<td>
         <textarea class="obs-cell" rows="1" placeholder="Observação…"
           oninput="autoResize(this)"
           onblur="autoResize(this);updateCtrl('${r.carteira||c}','${r.id}','obs',this.value,this)">${esc(ctrl.obs||'')}</textarea>
-      </td>
-      <td>
+      </td>`:''}
+      ${section!=='outros'?`<td>
         <textarea class="obs-cell" rows="1" placeholder="Validação…"
           oninput="autoResize(this)"
           onblur="autoResize(this);updateCtrl('${r.carteira||c}','${r.id}','validacao',this.value,this)">${esc(ctrl.validacao||'')}</textarea>
-      </td>
+      </td>`:''}
       <td class="col-action-td">
-        <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','https://app.pipefy.com/open-cards/${r.id}','${esc(r.link_pipefy||'')}','','${esc(r.fase||'')}')"
+        <button onclick="openCommentModal('${r.id}','${esc(r.titulo)}','https://app.pipefy.com/open-cards/${r.id}','${esc(r.link_pipefy||'')}','${section}','${esc(r.fase||'')}','${esc(r.tipo||'')}')"
           style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:var(--brand-light);border:1px solid rgba(26,188,172,0.3);border-radius:var(--radius-xs);color:var(--brand-dark);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font)"
           onmouseover="this.style.background='var(--brand)';this.style.color='#fff'"
           onmouseout="this.style.background='var(--brand-light)';this.style.color='var(--brand-dark)'">
@@ -2431,6 +2440,8 @@ let _commentCardId   = '';
 let _commentCardName = '';
 let _commentLinkAtv  = ''; // link no pipe Atendimento - Atividades do Cliente
 let _commentLinkOpec = ''; // link do card no pipe OPEC (Jornada de Notificações)
+let _commentSection  = '';
+let _commentTipo     = '';
 
 // ════════════════════════════════════════
 // COMMENT TEMPLATES
@@ -2478,11 +2489,13 @@ function applyTemplate(tpl) {
   } else { ta.focus(); }
 }
 
-function openCommentModal(cardId, cardName, linkAtividades, linkOpec, section, faseAtual) {
+function openCommentModal(cardId, cardName, linkAtividades, linkOpec, section, faseAtual, tipoCard) {
   _commentCardId   = cardId;
   _commentCardName = cardName;
   _commentLinkAtv  = linkAtividades;
   _commentLinkOpec = linkOpec || '';
+  _commentSection  = section || '';
+  _commentTipo     = (tipoCard || '').toLowerCase();
   _commentSection  = section || '';
 
   document.getElementById('comment-card-name').textContent = cardName;
@@ -2500,6 +2513,108 @@ function openCommentModal(cardId, cardName, linkAtividades, linkOpec, section, f
   applyTemplate('livre');
   document.getElementById('tpl-hint').style.display = 'none';
   loadPipefyPhases();
+
+  // UI conforme seção e tipo
+  const isDesatualizado = _commentTipo.includes('desatualizado');
+  const isVencidoFase   = _commentTipo.includes('vencidos na fase') || _commentTipo.includes('vencido');
+  const isCsFront       = _commentSection === 'outros';
+  const submitBtn       = document.getElementById('comment-submit-btn');
+  const dueDateGroup    = document.getElementById('comment-due-date')?.closest('.form-group');
+  const phaseGroup      = document.getElementById('comment-phase')?.closest('.form-group');
+
+  if (dueDateGroup) dueDateGroup.style.display = isDesatualizado ? 'none' : '';
+  if (phaseGroup)   phaseGroup.style.display   = isDesatualizado ? 'none' : '';
+
+  if (isVencidoFase) {
+    // Vencimento obrigatório
+    const dueDateLabel = dueDateGroup?.querySelector('.form-label');
+    if (dueDateLabel) dueDateLabel.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="1"/><path d="M1 7h14M5 1v4M11 1v4"/></svg> Novo vencimento <span style="color:var(--red);font-weight:700">*obrigatório</span>';
+    // Mostrar data de onboarding
+    let onbInfo = document.getElementById('onboarding-info');
+    if (!onbInfo) {
+      onbInfo = document.createElement('div');
+      onbInfo.id = 'onboarding-info';
+      onbInfo.style.cssText = 'font-size:11px;padding:5px 10px;background:var(--brand-light);border-radius:6px;color:var(--brand-dark);margin-top:4px;font-weight:500';
+      dueDateGroup?.appendChild(onbInfo);
+    }
+    // Tentar primeiro no cache local
+    let onbDate = '';
+    for (const sec of ['atrasos','outros','negacoes']) {
+      for (const cart of CARTEIRAS) {
+        const found = (allData[`${sec}_${cart}`]||[]).find(r => r.id === _commentCardId);
+        if (found?.data_onboarding) { onbDate = found.data_onboarding; break; }
+      }
+      if (onbDate) break;
+    }
+    // Se não estiver no cache, buscar via API
+    onbInfo.style.display = '';
+    onbInfo.textContent = onbDate ? '📅 OnBoarding: ' + onbDate : '⏳ Buscando data de OnBoarding…';
+    if (!onbDate) {
+      fetchDataOnboarding(_commentCardId).then(date => {
+        if (date) {
+          onbInfo.textContent = '📅 OnBoarding: ' + date;
+        } else {
+          onbInfo.textContent = '📅 OnBoarding: não informado';
+          onbInfo.style.background = 'var(--surface2)';
+          onbInfo.style.color = 'var(--text3)';
+        }
+      });
+    }
+    // Fase obrigatória + próxima fase sugerida
+    const phaseLabel = phaseGroup?.querySelector('.form-label');
+    const proxFase = getProximaFase(faseAtual);
+    if (phaseLabel) phaseLabel.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3l5 5-5 5"/></svg> Mover para fase <span style="color:var(--red);font-weight:700">*obrigatório</span>'
+      + (proxFase ? ` <span style="font-size:10px;background:var(--amber-bg);color:var(--amber);padding:1px 8px;border-radius:10px;font-weight:600;margin-left:4px">→ ${proxFase}</span>` : '');
+  } else {
+    // Limpar obrigatoriedades
+    const dueDateLabel = dueDateGroup?.querySelector('.form-label');
+    const phaseLabel   = phaseGroup?.querySelector('.form-label');
+    if (dueDateLabel) dueDateLabel.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="3" width="14" height="12" rx="1"/><path d="M1 7h14M5 1v4M11 1v4"/></svg> Novo vencimento <span style="color:var(--text3);font-weight:400">(opcional)</span>';
+    if (phaseLabel)   phaseLabel.innerHTML   = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M8 3l5 5-5 5"/></svg> Mover para fase <span style="color:var(--text3);font-weight:400">(opcional)</span>';
+    const onbInfo = document.getElementById('onboarding-info');
+    if (onbInfo) onbInfo.style.display = 'none';
+  }
+
+  if (isVencidoFase) {
+    if (submitBtn) submitBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l4 4L16 5"/></svg> Concluir atualização';
+    // Ajustar hints para Vencidos na Fase
+    const phaseHint = document.getElementById('phase-hint');
+    const doisPipes = document.getElementById('dois-pipes-info');
+    if (phaseHint) phaseHint.textContent = 'Se selecionado, move o card no pipe Atendimento > Fluxo Clientes';
+    const dueDateHint = document.getElementById('duedate-hint');
+    if (dueDateHint) dueDateHint.textContent = 'Se preenchido, atualiza o vencimento no pipe Atendimento > Fluxo Clientes';
+    if (doisPipes) doisPipes.style.display = 'none';
+    document.querySelectorAll('.tpl-btn').forEach(b => {
+      b.style.display = (b.dataset.tpl === 'livre' || !b.dataset.tpl) ? '' : 'none';
+    });
+  } else if (_commentTipo.includes('marketplace')) {
+    if (submitBtn) submitBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l12-6-6 12-2-4-4-2z"/></svg> Publicar nos dois pipes';
+    document.querySelectorAll('.tpl-btn').forEach(b => {
+      b.style.display = (b.dataset.tpl === 'livre' || !b.dataset.tpl) ? '' : 'none';
+    });
+    const doisPipesMkt = document.getElementById('dois-pipes-info');
+    if (doisPipesMkt) { doisPipesMkt.style.display = ''; doisPipesMkt.querySelector('span') && (doisPipesMkt.querySelector('span').textContent = ' Comentário publicado em Atividades do Cliente e Cadastros Marketplace'); }
+  } else if (isCsFront || isDesatualizado) {
+    const phaseHint2 = document.getElementById('phase-hint');
+    const doisPipes2 = document.getElementById('dois-pipes-info');
+    if (phaseHint2) phaseHint2.textContent = 'Se selecionado, move o card no pipe Atendimento - Atividades do Cliente';
+    const dueDateHint2 = document.getElementById('duedate-hint');
+    if (dueDateHint2) dueDateHint2.textContent = 'Se preenchido, atualiza o vencimento no pipe Atendimento - Atividades do Cliente';
+    if (doisPipes2) doisPipes2.style.display = 'none';
+    if (submitBtn) submitBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l12-6-6 12-2-4-4-2z"/></svg> Publicar comentário';
+    document.querySelectorAll('.tpl-btn').forEach(b => {
+      b.style.display = (b.dataset.tpl === 'livre' || !b.dataset.tpl) ? '' : 'none';
+    });
+  } else {
+    if (submitBtn) submitBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l12-6-6 12-2-4-4-2z"/></svg> Publicar nos dois pipes';
+    const phaseHint3 = document.getElementById('phase-hint');
+    const doisPipes3 = document.getElementById('dois-pipes-info');
+    if (phaseHint3) phaseHint3.textContent = 'Se selecionado, move o card no pipe Atendimento - Atividades do Cliente';
+    const dueDateHint3 = document.getElementById('duedate-hint');
+    if (dueDateHint3) dueDateHint3.textContent = 'Se preenchido, atualiza o vencimento no pipe Atendimento - Atividades do Cliente';
+    if (doisPipes3) doisPipes3.style.display = '';
+    document.querySelectorAll('.tpl-btn').forEach(b => { b.style.display = ''; });
+  }
 
   // Update preview on type
   const ta = document.getElementById('comment-text');
@@ -2541,8 +2656,17 @@ ${_commentLinkAtv || ''}`.trim();
   // Card ID no OPEC = extraído do link_pipefy (campo do card de Atendimento)
   const opecCardId = _commentLinkOpec ? _commentLinkOpec.split('/').pop() : null;
 
-  const newDueDate = document.getElementById('comment-due-date').value;
-  const newPhaseId = document.getElementById('comment-phase').value;
+  const isVencFase = _commentTipo.includes('vencidos na fase') || _commentTipo.includes('vencido');
+  const newDueDate = _commentTipo.includes('desatualizado') ? '' : document.getElementById('comment-due-date').value;
+  const newPhaseId = _commentTipo.includes('desatualizado') ? '' : document.getElementById('comment-phase').value;
+  if (isVencFase && !newDueDate) {
+    showStatus('error', '⚠️ Novo vencimento é obrigatório para Vencidos na Fase.');
+    btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l4 4L16 5"/></svg> Concluir atualização'; return;
+  }
+  if (isVencFase && !newPhaseId) {
+    showStatus('error', '⚠️ Mover para fase é obrigatório para Vencidos na Fase.');
+    btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l4 4L16 5"/></svg> Concluir atualização'; return;
+  }
   let successCount = 0;
   let errors = [];
 
@@ -2575,16 +2699,32 @@ ${_commentLinkAtv || ''}`.trim();
     errors.push('Atendimento: ' + e.message);
   }
 
-  // Publish on OPEC card (link_pipefy field)
-  if (opecCardId && opecCardId !== _commentCardId) {
-    try {
-      await createPipefyComment(opecCardId, commentBody);
-      successCount++;
-    } catch(e) {
-      errors.push('OPEC: ' + e.message);
+  // Marketplace: publicar no pipe Cadastros MARKETPLACES usando "Link do card no Pipefy"
+  if (_commentTipo.includes('marketplace')) {
+    const mktCardId = _commentLinkOpec ? _commentLinkOpec.split('/').pop() : null;
+    if (mktCardId && mktCardId !== _commentCardId) {
+      try {
+        await createPipefyComment(mktCardId, commentBody);
+        successCount++;
+        console.log('[Marketplace] Publicado, card:', mktCardId);
+      } catch(e) { errors.push('Marketplace: ' + e.message); }
+    } else {
+      errors.push('Marketplace: "Link do card no Pipefy" não encontrado neste card');
     }
-  } else if (!opecCardId) {
-    errors.push('OPEC: link do card não encontrado neste card');
+  }
+
+  // OPEC — apenas atrasos/negacoes, não CS Front, Desatualizados nem Vencidos na Fase
+  if (_commentSection !== 'outros' && !_commentTipo.includes('desatualizado') && !_commentTipo.includes('vencido') && !_commentTipo.includes('marketplace')) {
+    if (opecCardId && opecCardId !== _commentCardId) {
+      try {
+        await createPipefyComment(opecCardId, commentBody);
+        successCount++;
+      } catch(e) {
+        errors.push('OPEC: ' + e.message);
+      }
+    } else if (!opecCardId) {
+      errors.push('OPEC: link do card não encontrado neste card');
+    }
   }
 
   // Result
@@ -2602,6 +2742,40 @@ ${_commentLinkAtv || ''}`.trim();
 
   btn.disabled = false;
   btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8l12-6-6 12-2-4-4-2z"/></svg> Publicar nos dois pipes';
+}
+
+// Mapeamento de próxima fase para Vencidos na Fase
+const PROXIMA_FASE = {
+  'novo cliente 🚀': 'StandBy', 'standby': 'Pós OnBoarding',
+  'pós onboarding': '7 dias', '7 dias': '14 dias', '14 dias': '1 Mes',
+  '1 mes': '2 Meses', '1 mês': '2 Meses', '2 meses': '3 meses',
+  '3 meses': '6 meses', '6 meses': '9 meses', '9 meses': '12 meses',
+  '12 meses': 'Mais de 12 meses', 'mais de 12 meses': 'Renovação',
+};
+function getProximaFase(f) { return PROXIMA_FASE[(f||'').toLowerCase().trim()] || null; }
+
+// Buscar data de OnBoarding do card via Pipefy
+async function fetchDataOnboarding(cardId) {
+  if (!pipefyToken || !cardId) return null;
+  try {
+    const q = `{ card(id: "${cardId}") { fields { name value field { label } } } }`;
+    const resp = await pipefyGQL(q);
+    const fields = resp?.data?.card?.fields || [];
+    for (const f of fields) {
+      const label = (f.field?.label || f.name || '').toLowerCase();
+      if (label.includes('onboarding') || label.includes('on boarding')) {
+        if (f.value) {
+          // Formatar data
+          try {
+            const d = new Date(f.value.includes('T') ? f.value : f.value + 'T00:00:00');
+            if (!isNaN(d)) return d.toLocaleDateString('pt-BR');
+          } catch(e) {}
+          return f.value;
+        }
+      }
+    }
+  } catch(e) { console.warn('[OnBoarding] fetch error:', e.message); }
+  return null;
 }
 
 // Cache phases to avoid repeated API calls
