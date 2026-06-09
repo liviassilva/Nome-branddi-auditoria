@@ -934,8 +934,6 @@ CARTEIRAS.forEach(c => { controlData[c] = {}; });
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
-// Reset diário removido — não interfere mais com o trabalho do dia
-
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1332,8 +1330,6 @@ async function clearAndSync() {
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
-// Reset diário removido — não interfere mais com o trabalho do dia
-
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1409,8 +1405,6 @@ function processCards(cards, merge = false) {
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
-// Reset diário removido — não interfere mais com o trabalho do dia
-
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1461,8 +1455,6 @@ function sortTable(section, c, field) {
   // Sort A-Z
   Object.keys(allData).forEach(k => allData[k].sort((a,b) => a.titulo.localeCompare(b.titulo,'pt-BR')));
 
-  // Reset de finalizado/analista acontece via resetDailyControls() chamado 1x por dia
-  // Não resetar aqui para não interferir com o trabalho do dia atual
 }
 
 // ════════════════════════════════════════
@@ -1511,6 +1503,40 @@ async function saveCardsToSupabase(cards) {
     if (error) console.warn('Upsert batch error:', error.message);
   }
 
+  // Para cada card que voltou com nova data de vencimento,
+  // resetar finalizado e analista (mas preservar obs e validacao)
+  for (const card of cards) {
+    const carteira = card.carteira || 'Sem Carteira';
+    const ctrl = controlData[carteira]?.[card.id];
+    if (!ctrl) continue;
+    // Se estava finalizado como Sim, verificar se a data mudou
+    if (ctrl.finalizado === 'Sim') {
+      // Buscar data anterior salva no Supabase
+      try {
+        const { data: prev } = await supabaseClient
+          .from('auditoria_cards')
+          .select('data_vencimento')
+          .eq('id', card.id)
+          .single();
+        // Se a data de vencimento mudou (card foi tratado e voltou com nova data)
+        if (prev && prev.data_vencimento !== card.data_vencimento) {
+          // Resetar finalizado e analista, manter obs e validacao
+          ctrl.finalizado = 'Não';
+          ctrl.analista   = '';
+          await supabaseClient.from('auditoria_controles').upsert({
+            carteira: carteira,
+            card_id: card.id,
+            finalizado: 'Não',
+            analista: '',
+            obs: ctrl.obs || '',
+            validacao: ctrl.validacao || '',
+            updated_at: ts,
+          }, { onConflict: 'card_id' });
+          console.log(`[Reset] ${card.titulo} — data mudou, finalizado/analista resetados`);
+        }
+      } catch(e) { console.warn('[Reset check]', e.message); }
+    }
+  }
 }
 
 function setupRealtime() {
