@@ -1029,7 +1029,8 @@ async function connectAll(silent = false) {
     } catch(e) { console.warn('Supabase:', e.message); }
   }
   const hasCards = Object.values(allData).some(a => a.length > 0);
-  if (pipefyToken && !hasCards) await syncPipefy();
+  // Sempre sincronizar do Pipefy ao abrir para garantir dados frescos do dia
+  if (pipefyToken) await syncPipefy();
   else updateLastSync();
 }
 
@@ -1459,14 +1460,21 @@ function sortTable(section, c, field) {
 // SUPABASE
 // ════════════════════════════════════════
 async function loadSupabaseCards() {
+  // Os cards do dia SEMPRE vêm do Pipefy via syncPipefy()
+  // O Supabase é apenas fonte de histórico e controles (finalizado, analista, obs)
+  // Não populamos allData aqui para evitar mostrar cards desatualizados
   if (!supabaseClient) return;
-  const { data } = await supabaseClient.from('auditoria_cards').select('*');
-  if (!data?.length) return;
-  processCards(data);
-  const dates = data.map(c => c.synced_at).filter(Boolean).sort();
-  if (dates.length) localStorage.setItem('auditoria_last_sync', dates[dates.length-1]);
-  updateLastSync();
-  rebuildAll();
+
+  // Apenas atualizar o timestamp do último sync para exibição
+  const { data } = await supabaseClient
+    .from('auditoria_cards')
+    .select('synced_at')
+    .order('synced_at', { ascending: false })
+    .limit(1);
+  if (data?.[0]?.synced_at) {
+    localStorage.setItem('auditoria_last_sync', data[0].synced_at);
+    updateLastSync();
+  }
 }
 
 async function loadSupabaseControls() {
