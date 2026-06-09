@@ -1454,6 +1454,42 @@ function sortTable(section, c, field) {
   });
   // Sort A-Z
   Object.keys(allData).forEach(k => allData[k].sort((a,b) => a.titulo.localeCompare(b.titulo,'pt-BR')));
+
+  // Resetar finalizado e analista para todos os cards que estão em atraso hoje
+  // Preserva obs e validacao — apenas limpa o status do dia anterior
+  const hoje = new Date();
+  const hojeDay = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const todayStr = hojeDay.toLocaleDateString('pt-BR'); // dd/mm/aaaa
+
+  Object.keys(allData).forEach(key => {
+    (allData[key] || []).forEach(card => {
+      const cart = card.carteira || 'Sem Carteira';
+      if (!controlData[cart]) controlData[cart] = {};
+      const ctrl = controlData[cart][card.id];
+      if (!ctrl) return;
+      // Só resetar se estava como Sim (finalizado no dia anterior)
+      if (ctrl.finalizado !== 'Sim') return;
+      // Verificar se a data de vencimento do card é hoje ou anterior (está em atraso de verdade)
+      // Se estava finalizado e voltou como atraso → resetar
+      ctrl.finalizado = 'Não';
+      ctrl.analista   = '';
+      // Salvar no Supabase de forma assíncrona (não bloqueia o render)
+      if (supabaseClient) {
+        supabaseClient.from('auditoria_controles').upsert({
+          carteira: cart,
+          card_id: card.id,
+          finalizado: 'Não',
+          analista: '',
+          obs: ctrl.obs || '',
+          validacao: ctrl.validacao || '',
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'card_id' }).then(({ error }) => {
+          if (error) console.warn('[Reset]', card.titulo, error.message);
+          else console.log('[Reset] Finalizado/analista resetados:', card.titulo);
+        });
+      }
+    });
+  });
 }
 
 // ════════════════════════════════════════
@@ -1490,8 +1526,8 @@ async function loadSupabaseControls() {
 async function saveCardsToSupabase(cards) {
   if (!supabaseClient || !cards.length) return;
   const ts = new Date().toISOString();
-  // Upsert em lotes de 50 — apenas insere/atualiza, NUNCA deleta
-  // Cards concluídos saem do relatório do Pipefy mas ficam no Supabase para manter histórico
+
+  // Upsert em lotes de 50
   for (let i = 0; i < cards.length; i += 50) {
     const { error } = await supabaseClient
       .from('auditoria_cards')
@@ -1501,7 +1537,41 @@ async function saveCardsToSupabase(cards) {
       );
     if (error) console.warn('Upsert batch error:', error.message);
   }
-  // NÃO deletar cards ausentes — o histórico de concluídos deve ser preservado
+
+  // Para cada card que voltou com nova data de vencimento,
+  // resetar finalizado e analista (mas preservar obs e validacao)
+  for (const card of cards) {
+    const carteira = card.carteira || 'Sem Carteira';
+    const ctrl = controlData[carteira]?.[card.id];
+    if (!ctrl) continue;
+    // Se estava finalizado como Sim, verificar se a data mudou
+    if (ctrl.finalizado === 'Sim') {
+      // Buscar data anterior salva no Supabase
+      try {
+        const { data: prev } = await supabaseClient
+          .from('auditoria_cards')
+          .select('data_vencimento')
+          .eq('id', card.id)
+          .single();
+        // Se a data de vencimento mudou (card foi tratado e voltou com nova data)
+        if (prev && prev.data_vencimento !== card.data_vencimento) {
+          // Resetar finalizado e analista, manter obs e validacao
+          ctrl.finalizado = 'Não';
+          ctrl.analista   = '';
+          await supabaseClient.from('auditoria_controles').upsert({
+            carteira: carteira,
+            card_id: card.id,
+            finalizado: 'Não',
+            analista: '',
+            obs: ctrl.obs || '',
+            validacao: ctrl.validacao || '',
+            updated_at: ts,
+          }, { onConflict: 'card_id' });
+          console.log(`[Reset] ${card.titulo} — data mudou, finalizado/analista resetados`);
+        }
+      } catch(e) { console.warn('[Reset check]', e.message); }
+    }
+  }
 }
 
 function setupRealtime() {
