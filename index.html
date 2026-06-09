@@ -1078,15 +1078,19 @@ async function syncPipefy() {
 
   try {
     const tipos = Object.entries(TIPOS_CONFIG);
+    showSyncBanner('Buscando todos os tipos em paralelo…', 30);
+    // Buscar todos os tipos EM PARALELO (muito mais rápido que sequencial)
+    const resultados = await Promise.allSettled(
+      tipos.map(([nome, cfg]) => fetchCards(cfg.reportId, cfg.pipeId, nome))
+    );
     let allCards = [];
-    for (let i = 0; i < tipos.length; i++) {
-      const [nome, cfg] = tipos[i];
-      showSyncBanner(`Buscando: ${nome}…`, Math.round((i / tipos.length) * 88));
-      try {
-        const cards = await fetchCards(cfg.reportId, cfg.pipeId, nome);
-        allCards = allCards.concat(cards);
-      } catch(e) { console.warn(`Erro ${nome}:`, e.message); }
-    }
+    resultados.forEach((res, i) => {
+      if (res.status === 'fulfilled' && res.value) {
+        allCards = allCards.concat(res.value);
+      } else if (res.status === 'rejected') {
+        console.warn(`Erro ${tipos[i][0]}:`, res.reason?.message || res.reason);
+      }
+    });
 
     showSyncBanner('Processando…', 92);
     processCards(allCards);
@@ -1151,34 +1155,45 @@ async function fetchCards(reportId, pipeId, tipoNome) {
   }
 
      if (cfg?.phaseIds?.length) {
-    // Fetch cards by specific phase IDs
-    for (const phaseId of cfg.phaseIds) {
-      let cursor = null, page = 0;
-      while (page < 20) {
-        const after = cursor ? `, after: "${cursor}"` : '';
-        const query = `{
-          phase(id: "${phaseId}") {
-            cards(first: 50${after}) {
-              edges {
-                node {
-                  id title due_date age
-                  current_phase { name }
-                  assignees { name }
-                  fields { name value field { id label } }
-                }
-              }
-              pageInfo { hasNextPage endCursor }
-            }
-          }
-        }`;
-        const resp = await pipefyGQL(query);
-        const batch = resp?.data?.phase?.cards;
-        if (!batch?.edges?.length) break;
+    // Buscar a 1ª página de TODAS as fases em paralelo (muito mais rápido)
+    const nodeF = 'id title due_date age current_phase { name } assignees { name } fields { name value field { id label } }';
+    const firstPagePromises = cfg.phaseIds.map(phaseId =>
+      pipefyGQL(`{ phase(id: "${phaseId}") { cards(first: 100) { edges { node { ${nodeF} } } pageInfo { hasNextPage endCursor } } } }`)
+        .then(resp => ({ phaseId, batch: resp?.data?.phase?.cards }))
+        .catch(() => ({ phaseId, batch: null }))
+    );
+    const firstResults = await Promise.all(firstPagePromises);
+
+    // Coletar 1ª página e identificar fases que têm mais páginas
+    const needMore = [];
+    firstResults.forEach(({ phaseId, batch }) => {
+      if (batch?.edges?.length) {
         allEdges = allEdges.concat(batch.edges);
-        if (!batch.pageInfo?.hasNextPage) break;
-        cursor = batch.pageInfo.endCursor;
-        page++;
+        if (batch.pageInfo?.hasNextPage) {
+          needMore.push({ phaseId, cursor: batch.pageInfo.endCursor });
+        }
       }
+    });
+
+    // Paginar apenas as fases que têm mais cards (em paralelo, página por página)
+    let rounds = 0;
+    while (needMore.length && rounds < 20) {
+      const morePromises = needMore.map(({ phaseId, cursor }) =>
+        pipefyGQL(`{ phase(id: "${phaseId}") { cards(first: 100, after: "${cursor}") { edges { node { ${nodeF} } } pageInfo { hasNextPage endCursor } } } }`)
+          .then(resp => ({ phaseId, batch: resp?.data?.phase?.cards }))
+          .catch(() => ({ phaseId, batch: null }))
+      );
+      const moreResults = await Promise.all(morePromises);
+      needMore.length = 0; // limpar para próxima rodada
+      moreResults.forEach(({ phaseId, batch }) => {
+        if (batch?.edges?.length) {
+          allEdges = allEdges.concat(batch.edges);
+          if (batch.pageInfo?.hasNextPage) {
+            needMore.push({ phaseId, cursor: batch.pageInfo.endCursor });
+          }
+        }
+      });
+      rounds++;
     }
     console.log(`[${tipoNome}] phase-based fetch: ${allEdges.length} cards`);
   } else {
@@ -1186,7 +1201,7 @@ async function fetchCards(reportId, pipeId, tipoNome) {
     let cursor = null, page = 0;
     while (page < 20) {
       const after = cursor ? `, after: "${cursor}"` : '';
-      const query = `{ allCards(pipeId: "${pipeId}", first: 50${after}) {
+      const query = `{ allCards(pipeId: "${pipeId}", first: 100${after}) {
         edges { node { id title due_date age updated_at current_phase { name } assignees { name } fields { name value field { id label } } } }
         pageInfo { hasNextPage endCursor }
       } }`;
