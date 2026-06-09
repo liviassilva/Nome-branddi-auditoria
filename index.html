@@ -2051,17 +2051,22 @@ function renderResumo() {
     return true;
   }
 
-  // Atrasos stats
+  // Atrasos stats — combina cards em allData (pendentes hoje) com controles do Supabase
   let atrasoTotal=0, atrasoPendente=0, atrasoConcluido=0;
   const atrasoByCarteira = {};
   CARTEIRAS_ALL.forEach(c => {
-    const cards = getCards('atrasos', c);
-    const total = cards.length;
-    const sim   = cards.filter(r => controlData[c]?.[r.id]?.finalizado === 'Sim').length;
-    atrasoByCarteira[c] = { total, sim, nao: total - sim };
+    // Cards pendentes hoje (em allData)
+    const cardsHoje = getCards('atrasos', c);
+    const pendentes = cardsHoje.filter(r => controlData[c]?.[r.id]?.finalizado !== 'Sim').length;
+    const simHoje   = cardsHoje.filter(r => controlData[c]?.[r.id]?.finalizado === 'Sim').length;
+    // Cards concluídos (em controlData como Sim, independente de estar em allData)
+    const todosSimCarteira = Object.values(controlData[c] || {}).filter(v => v.finalizado === 'Sim').length;
+    const sim = todosSimCarteira;
+    const total = pendentes + sim;
+    atrasoByCarteira[c] = { total, sim, nao: pendentes };
     atrasoTotal     += total;
     atrasoConcluido += sim;
-    atrasoPendente  += (total - sim);
+    atrasoPendente  += pendentes;
   });
 
   // CS - Negativações stats (agrupado como "linha" extra no painel)
@@ -2086,19 +2091,18 @@ function renderResumo() {
   const analistaStats = {};
   ANALISTAS_PAINEL.forEach(a => { analistaStats[a] = { total:0, byCarteira:{} }; CARTEIRAS_ALL.forEach(c => analistaStats[a].byCarteira[c]=0); });
   CARTEIRAS_ALL.forEach(c => {
-    getCards('atrasos', c).forEach(r => {
-      const ctrl = controlData[c]?.[r.id];
+    // Contar TODOS os Sim do controlData (não só os que estão em allData hoje)
+    Object.entries(controlData[c] || {}).forEach(([cardId, ctrl]) => {
       if (ctrl?.finalizado === 'Sim' && analistaStats[ctrl.analista]) {
         analistaStats[ctrl.analista].total++;
-        analistaStats[ctrl.analista].byCarteira[c]++;
+        analistaStats[ctrl.analista].byCarteira[c] = (analistaStats[ctrl.analista].byCarteira[c] || 0) + 1;
       }
     });
-    // Incluir negativações na contagem
+    // Negativações
     (allData[`negacoes_${c}`]||[]).forEach(r => {
       const ctrl = controlData[c]?.[r.id];
       if (ctrl?.finalizado === 'Sim' && analistaStats[ctrl.analista]) {
         analistaStats[ctrl.analista].total++;
-        // Registrar em carteira virtual 'negacoes'
         if (!analistaStats[ctrl.analista].byCarteira['negacoes']) analistaStats[ctrl.analista].byCarteira['negacoes'] = 0;
         analistaStats[ctrl.analista].byCarteira['negacoes']++;
       }
