@@ -934,6 +934,68 @@ CARTEIRAS.forEach(c => { controlData[c] = {}; });
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
+// Controle de reset diário — roda 1x por dia ao abrir o dashboard
+async function resetDailyControls() {
+  const hoje = new Date().toLocaleDateString('pt-BR'); // dd/mm/aaaa
+  const lastReset = localStorage.getItem('auditoria_last_reset');
+  if (lastReset === hoje) return; // já resetou hoje
+
+  if (!supabaseClient) {
+    localStorage.setItem('auditoria_last_reset', hoje);
+    return;
+  }
+
+  try {
+    // Buscar todos os controles marcados como Sim
+    const { data: simCards } = await supabaseClient
+      .from('auditoria_controles')
+      .select('card_id, carteira, obs, validacao')
+      .eq('finalizado', 'Sim');
+
+    if (!simCards?.length) {
+      localStorage.setItem('auditoria_last_reset', hoje);
+      return;
+    }
+
+    // Para cada card finalizado, verificar se ele está em atraso hoje
+    // (ou seja, se aparece no allData atual — significa que voltou)
+    const cardsEmAtraso = new Set();
+    Object.keys(allData).forEach(key => {
+      (allData[key] || []).forEach(c => cardsEmAtraso.add(c.id));
+    });
+
+    const paraResetar = simCards.filter(c => cardsEmAtraso.has(c.card_id));
+    if (!paraResetar.length) {
+      localStorage.setItem('auditoria_last_reset', hoje);
+      return;
+    }
+
+    // Resetar finalizado e analista, preservar obs e validacao
+    for (const c of paraResetar) {
+      await supabaseClient.from('auditoria_controles').upsert({
+        carteira: c.carteira,
+        card_id: c.card_id,
+        finalizado: 'Não',
+        analista: '',
+        obs: c.obs || '',
+        validacao: c.validacao || '',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'card_id' });
+      // Atualizar estado local
+      if (controlData[c.carteira]?.[c.card_id]) {
+        controlData[c.carteira][c.card_id].finalizado = 'Não';
+        controlData[c.carteira][c.card_id].analista   = '';
+      }
+    }
+
+    console.log(`[Reset diário] ${paraResetar.length} cards resetados`);
+    localStorage.setItem('auditoria_last_reset', hoje);
+    rebuildAll();
+  } catch(e) {
+    console.warn('[Reset diário] erro:', e.message);
+  }
+}
+
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1088,6 +1150,8 @@ async function syncPipefy() {
     localStorage.setItem('auditoria_last_sync', new Date().toISOString());
     updateLastSync();
     rebuildAll();
+    // Reset diário: limpar finalizado/analista de cards que voltaram
+    setTimeout(resetDailyControls, 1000);
   } catch(e) {
     showSyncBanner('Erro: ' + e.message, 0);
     setTimeout(hideSyncBanner, 3000);
@@ -1330,6 +1394,68 @@ async function clearAndSync() {
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
+// Controle de reset diário — roda 1x por dia ao abrir o dashboard
+async function resetDailyControls() {
+  const hoje = new Date().toLocaleDateString('pt-BR'); // dd/mm/aaaa
+  const lastReset = localStorage.getItem('auditoria_last_reset');
+  if (lastReset === hoje) return; // já resetou hoje
+
+  if (!supabaseClient) {
+    localStorage.setItem('auditoria_last_reset', hoje);
+    return;
+  }
+
+  try {
+    // Buscar todos os controles marcados como Sim
+    const { data: simCards } = await supabaseClient
+      .from('auditoria_controles')
+      .select('card_id, carteira, obs, validacao')
+      .eq('finalizado', 'Sim');
+
+    if (!simCards?.length) {
+      localStorage.setItem('auditoria_last_reset', hoje);
+      return;
+    }
+
+    // Para cada card finalizado, verificar se ele está em atraso hoje
+    // (ou seja, se aparece no allData atual — significa que voltou)
+    const cardsEmAtraso = new Set();
+    Object.keys(allData).forEach(key => {
+      (allData[key] || []).forEach(c => cardsEmAtraso.add(c.id));
+    });
+
+    const paraResetar = simCards.filter(c => cardsEmAtraso.has(c.card_id));
+    if (!paraResetar.length) {
+      localStorage.setItem('auditoria_last_reset', hoje);
+      return;
+    }
+
+    // Resetar finalizado e analista, preservar obs e validacao
+    for (const c of paraResetar) {
+      await supabaseClient.from('auditoria_controles').upsert({
+        carteira: c.carteira,
+        card_id: c.card_id,
+        finalizado: 'Não',
+        analista: '',
+        obs: c.obs || '',
+        validacao: c.validacao || '',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'card_id' });
+      // Atualizar estado local
+      if (controlData[c.carteira]?.[c.card_id]) {
+        controlData[c.carteira][c.card_id].finalizado = 'Não';
+        controlData[c.carteira][c.card_id].analista   = '';
+      }
+    }
+
+    console.log(`[Reset diário] ${paraResetar.length} cards resetados`);
+    localStorage.setItem('auditoria_last_reset', hoje);
+    rebuildAll();
+  } catch(e) {
+    console.warn('[Reset diário] erro:', e.message);
+  }
+}
+
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1405,6 +1531,68 @@ function processCards(cards, merge = false) {
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
+// Controle de reset diário — roda 1x por dia ao abrir o dashboard
+async function resetDailyControls() {
+  const hoje = new Date().toLocaleDateString('pt-BR'); // dd/mm/aaaa
+  const lastReset = localStorage.getItem('auditoria_last_reset');
+  if (lastReset === hoje) return; // já resetou hoje
+
+  if (!supabaseClient) {
+    localStorage.setItem('auditoria_last_reset', hoje);
+    return;
+  }
+
+  try {
+    // Buscar todos os controles marcados como Sim
+    const { data: simCards } = await supabaseClient
+      .from('auditoria_controles')
+      .select('card_id, carteira, obs, validacao')
+      .eq('finalizado', 'Sim');
+
+    if (!simCards?.length) {
+      localStorage.setItem('auditoria_last_reset', hoje);
+      return;
+    }
+
+    // Para cada card finalizado, verificar se ele está em atraso hoje
+    // (ou seja, se aparece no allData atual — significa que voltou)
+    const cardsEmAtraso = new Set();
+    Object.keys(allData).forEach(key => {
+      (allData[key] || []).forEach(c => cardsEmAtraso.add(c.id));
+    });
+
+    const paraResetar = simCards.filter(c => cardsEmAtraso.has(c.card_id));
+    if (!paraResetar.length) {
+      localStorage.setItem('auditoria_last_reset', hoje);
+      return;
+    }
+
+    // Resetar finalizado e analista, preservar obs e validacao
+    for (const c of paraResetar) {
+      await supabaseClient.from('auditoria_controles').upsert({
+        carteira: c.carteira,
+        card_id: c.card_id,
+        finalizado: 'Não',
+        analista: '',
+        obs: c.obs || '',
+        validacao: c.validacao || '',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'card_id' });
+      // Atualizar estado local
+      if (controlData[c.carteira]?.[c.card_id]) {
+        controlData[c.carteira][c.card_id].finalizado = 'Não';
+        controlData[c.carteira][c.card_id].analista   = '';
+      }
+    }
+
+    console.log(`[Reset diário] ${paraResetar.length} cards resetados`);
+    localStorage.setItem('auditoria_last_reset', hoje);
+    rebuildAll();
+  } catch(e) {
+    console.warn('[Reset diário] erro:', e.message);
+  }
+}
+
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1455,41 +1643,8 @@ function sortTable(section, c, field) {
   // Sort A-Z
   Object.keys(allData).forEach(k => allData[k].sort((a,b) => a.titulo.localeCompare(b.titulo,'pt-BR')));
 
-  // Resetar finalizado e analista para todos os cards que estão em atraso hoje
-  // Preserva obs e validacao — apenas limpa o status do dia anterior
-  const hoje = new Date();
-  const hojeDay = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  const todayStr = hojeDay.toLocaleDateString('pt-BR'); // dd/mm/aaaa
-
-  Object.keys(allData).forEach(key => {
-    (allData[key] || []).forEach(card => {
-      const cart = card.carteira || 'Sem Carteira';
-      if (!controlData[cart]) controlData[cart] = {};
-      const ctrl = controlData[cart][card.id];
-      if (!ctrl) return;
-      // Só resetar se estava como Sim (finalizado no dia anterior)
-      if (ctrl.finalizado !== 'Sim') return;
-      // Verificar se a data de vencimento do card é hoje ou anterior (está em atraso de verdade)
-      // Se estava finalizado e voltou como atraso → resetar
-      ctrl.finalizado = 'Não';
-      ctrl.analista   = '';
-      // Salvar no Supabase de forma assíncrona (não bloqueia o render)
-      if (supabaseClient) {
-        supabaseClient.from('auditoria_controles').upsert({
-          carteira: cart,
-          card_id: card.id,
-          finalizado: 'Não',
-          analista: '',
-          obs: ctrl.obs || '',
-          validacao: ctrl.validacao || '',
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'card_id' }).then(({ error }) => {
-          if (error) console.warn('[Reset]', card.titulo, error.message);
-          else console.log('[Reset] Finalizado/analista resetados:', card.titulo);
-        });
-      }
-    });
-  });
+  // Reset de finalizado/analista acontece via resetDailyControls() chamado 1x por dia
+  // Não resetar aqui para não interferir com o trabalho do dia atual
 }
 
 // ════════════════════════════════════════
@@ -2863,24 +3018,43 @@ async function loadPipefyPhases() {
   const phaseSelect = document.getElementById('comment-phase');
   if (!pipefyToken) return;
   try {
-    // Use cached phases if available
-    if (_pipefyPhasesCache) {
-      populatePhaseSelect(phaseSelect, _pipefyPhasesCache);
+    // Vencidos na Fase: fases do pipe 302483272 (Fluxo Clientes)
+    // Demais tipos: fases do pipe 302656757 (Atividades do Cliente)
+    const isVencFase = _commentTipo.includes('vencidos na fase') || _commentTipo.includes('vencido');
+    const pipeId = isVencFase ? '302483272' : '302656757';
+    const cacheKey = `phases_${pipeId}`;
+
+    if (window[cacheKey]) {
+      populatePhaseSelect(phaseSelect, window[cacheKey]);
       return;
     }
-    const q = `{ pipe(id: "302656757") { phases { id name } } }`;
+    const q = `{ pipe(id: "${pipeId}") { phases { id name } } }`;
     const resp = await pipefyGQL(q);
     if (resp?.errors?.length || !resp?.data?.pipe?.phases) return;
-    _pipefyPhasesCache = resp.data.pipe.phases;
-    populatePhaseSelect(phaseSelect, _pipefyPhasesCache);
+    window[cacheKey] = resp.data.pipe.phases;
+    // Manter cache legado para compatibilidade
+    if (!isVencFase) _pipefyPhasesCache = resp.data.pipe.phases;
+    populatePhaseSelect(phaseSelect, window[cacheKey]);
   } catch(e) { console.warn('loadPipefyPhases error:', e.message); }
 }
 
 function populatePhaseSelect(select, phases) {
-  // Preservar o label da primeira opção (já tem a fase atual)
   const firstLabel = select.options[0]?.text || '— Manter fase atual —';
-  const excluded = ['backlog - solicitações','enviado - solicitação de neg','cs - negativ','cadastro de marketplace'];
-  const filtered = phases.filter(p => !excluded.some(e => p.name.toLowerCase().includes(e)));
+  const isVencFase = _commentTipo.includes('vencidos na fase') || _commentTipo.includes('vencido');
+
+  // Exclusões por pipe
+  const excludedAtv = ['backlog - solicitações','enviado - solicitação de neg','cs - negativ','cadastro de marketplace'];
+  const excludedFluxo = ['churn','solicitação de churn','novo cliente','pós onboarding','standby','renovação'];
+
+  const filtered = phases.filter(p => {
+    const n = p.name.toLowerCase();
+    if (isVencFase) {
+      // Pipe Fluxo Clientes: manter apenas as fases de tempo (7 dias, 14 dias, etc) + Concluídos
+      return !excludedFluxo.some(e => n.includes(e));
+    }
+    return !excludedAtv.some(e => n.includes(e));
+  });
+
   select.innerHTML = `<option value="">${firstLabel}</option>`;
   filtered.forEach(p => {
     const opt = document.createElement('option');
