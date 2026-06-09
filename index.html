@@ -934,6 +934,20 @@ CARTEIRAS.forEach(c => { controlData[c] = {}; });
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
+// Verifica se um controle foi finalizado HOJE (horário Brasília)
+function isFinalizadoHoje(ctrl) {
+  if (!ctrl || ctrl.finalizado !== 'Sim') return false;
+  if (!ctrl.updated_at) return false;
+  const upd = new Date(ctrl.updated_at);
+  // Converter para data Brasília (UTC-3)
+  const updBr = new Date(upd.getTime() - 3 * 60 * 60 * 1000);
+  const now = new Date();
+  const nowBr = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  return updBr.getUTCFullYear() === nowBr.getUTCFullYear()
+      && updBr.getUTCMonth() === nowBr.getUTCMonth()
+      && updBr.getUTCDate() === nowBr.getUTCDate();
+}
+
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1330,6 +1344,20 @@ async function clearAndSync() {
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
 
+// Verifica se um controle foi finalizado HOJE (horário Brasília)
+function isFinalizadoHoje(ctrl) {
+  if (!ctrl || ctrl.finalizado !== 'Sim') return false;
+  if (!ctrl.updated_at) return false;
+  const upd = new Date(ctrl.updated_at);
+  // Converter para data Brasília (UTC-3)
+  const updBr = new Date(upd.getTime() - 3 * 60 * 60 * 1000);
+  const now = new Date();
+  const nowBr = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  return updBr.getUTCFullYear() === nowBr.getUTCFullYear()
+      && updBr.getUTCMonth() === nowBr.getUTCMonth()
+      && updBr.getUTCDate() === nowBr.getUTCDate();
+}
+
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
   const cur = sortState[key];
@@ -1404,6 +1432,20 @@ function processCards(cards, merge = false) {
 
 // Sort state: { section_carteira: { field, dir } }
 const sortState = {};
+
+// Verifica se um controle foi finalizado HOJE (horário Brasília)
+function isFinalizadoHoje(ctrl) {
+  if (!ctrl || ctrl.finalizado !== 'Sim') return false;
+  if (!ctrl.updated_at) return false;
+  const upd = new Date(ctrl.updated_at);
+  // Converter para data Brasília (UTC-3)
+  const updBr = new Date(upd.getTime() - 3 * 60 * 60 * 1000);
+  const now = new Date();
+  const nowBr = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  return updBr.getUTCFullYear() === nowBr.getUTCFullYear()
+      && updBr.getUTCMonth() === nowBr.getUTCMonth()
+      && updBr.getUTCDate() === nowBr.getUTCDate();
+}
 
 function sortTable(section, c, field) {
   const key = `${section}_${c}`;
@@ -1484,7 +1526,7 @@ async function loadSupabaseControls() {
   if (!data) return;
   data.forEach(r => {
     if (!controlData[r.carteira]) controlData[r.carteira] = {};
-    controlData[r.carteira][r.card_id] = { finalizado: r.finalizado||'Não', analista: r.analista||'', obs: r.obs||'', validacao: r.validacao||'' };
+    controlData[r.carteira][r.card_id] = { finalizado: r.finalizado||'Não', analista: r.analista||'', obs: r.obs||'', validacao: r.validacao||'', updated_at: r.updated_at||null };
   });
 }
 
@@ -1945,18 +1987,24 @@ function updateCtrl(c, id, field, val, el) {
 async function persistCtrl(c, id) {
   const d = controlData[c]?.[id];
   if (!d) return;
+  const ts = new Date().toISOString();
+  d.updated_at = ts; // atualizar localmente para o painel refletir hoje
   if (supabaseClient) {
     try {
       await supabaseClient.from('auditoria_controles').upsert({
         carteira: c, card_id: id,
         finalizado: d.finalizado, analista: d.analista, obs: d.obs, validacao: d.validacao||'',
-        updated_at: new Date().toISOString()
+        updated_at: ts
       }, { onConflict:'card_id' });
     } catch(e) { console.warn('Save err:', e.message); }
   } else {
     localStorage.setItem('auditoria_controles', JSON.stringify(controlData));
   }
   showSaved();
+  // Atualizar painel se estiver visível
+  if (currentSection === 'painel' || document.getElementById('panel-painel')?.classList.contains('active')) {
+    renderResumo();
+  }
 }
 
 // ════════════════════════════════════════
@@ -2051,17 +2099,15 @@ function renderResumo() {
     return true;
   }
 
-  // Atrasos stats — combina cards em allData (pendentes hoje) com controles do Supabase
+  // Atrasos stats — só conta o que foi feito HOJE (mantém histórico no Supabase)
   let atrasoTotal=0, atrasoPendente=0, atrasoConcluido=0;
   const atrasoByCarteira = {};
   CARTEIRAS_ALL.forEach(c => {
-    // Cards pendentes hoje (em allData)
+    // Cards pendentes hoje (em allData, não finalizados)
     const cardsHoje = getCards('atrasos', c);
     const pendentes = cardsHoje.filter(r => controlData[c]?.[r.id]?.finalizado !== 'Sim').length;
-    const simHoje   = cardsHoje.filter(r => controlData[c]?.[r.id]?.finalizado === 'Sim').length;
-    // Cards concluídos (em controlData como Sim, independente de estar em allData)
-    const todosSimCarteira = Object.values(controlData[c] || {}).filter(v => v.finalizado === 'Sim').length;
-    const sim = todosSimCarteira;
+    // Cards concluídos HOJE (finalizado=Sim com updated_at de hoje)
+    const sim = Object.values(controlData[c] || {}).filter(v => isFinalizadoHoje(v)).length;
     const total = pendentes + sim;
     atrasoByCarteira[c] = { total, sim, nao: pendentes };
     atrasoTotal     += total;
@@ -2069,10 +2115,16 @@ function renderResumo() {
     atrasoPendente  += pendentes;
   });
 
-  // CS - Negativações stats (agrupado como "linha" extra no painel)
-  const negTotal   = CARTEIRAS_ALL.reduce((n,c) => n + (allData[`negacoes_${c}`]||[]).length, 0);
-  const negSim     = CARTEIRAS_ALL.reduce((n,c) => n + (allData[`negacoes_${c}`]||[]).filter(r => controlData[c]?.[r.id]?.finalizado === 'Sim').length, 0);
-  const negNao     = negTotal - negSim;
+  // CS - Negativações stats — concluídos só de hoje
+  const negPend    = CARTEIRAS_ALL.reduce((n,c) => n + (allData[`negacoes_${c}`]||[]).filter(r => controlData[c]?.[r.id]?.finalizado !== 'Sim').length, 0);
+  const negSim     = CARTEIRAS_ALL.reduce((n,c) => {
+    return n + Object.entries(controlData[c]||{}).filter(([id,v]) => {
+      const card = (allData[`negacoes_${c}`]||[]).find(x=>x.id===id);
+      return isFinalizadoHoje(v) && card;
+    }).length;
+  }, 0);
+  const negNao     = negPend;
+  const negTotal   = negPend + negSim;
 
   // Outros stats
   const tipoTotals = { 'Vencidos na Fase':0, 'Desatualizados':0, 'Cadastro de Marketplace':0 };
@@ -2091,20 +2143,11 @@ function renderResumo() {
   const analistaStats = {};
   ANALISTAS_PAINEL.forEach(a => { analistaStats[a] = { total:0, byCarteira:{} }; CARTEIRAS_ALL.forEach(c => analistaStats[a].byCarteira[c]=0); });
   CARTEIRAS_ALL.forEach(c => {
-    // Contar TODOS os Sim do controlData (não só os que estão em allData hoje)
+    // Contar só os concluídos HOJE
     Object.entries(controlData[c] || {}).forEach(([cardId, ctrl]) => {
-      if (ctrl?.finalizado === 'Sim' && analistaStats[ctrl.analista]) {
+      if (isFinalizadoHoje(ctrl) && analistaStats[ctrl.analista]) {
         analistaStats[ctrl.analista].total++;
         analistaStats[ctrl.analista].byCarteira[c] = (analistaStats[ctrl.analista].byCarteira[c] || 0) + 1;
-      }
-    });
-    // Negativações
-    (allData[`negacoes_${c}`]||[]).forEach(r => {
-      const ctrl = controlData[c]?.[r.id];
-      if (ctrl?.finalizado === 'Sim' && analistaStats[ctrl.analista]) {
-        analistaStats[ctrl.analista].total++;
-        if (!analistaStats[ctrl.analista].byCarteira['negacoes']) analistaStats[ctrl.analista].byCarteira['negacoes'] = 0;
-        analistaStats[ctrl.analista].byCarteira['negacoes']++;
       }
     });
   });
