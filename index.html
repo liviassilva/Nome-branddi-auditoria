@@ -2006,6 +2006,26 @@ async function persistCtrl(c, id) {
         finalizado: d.finalizado, analista: d.analista, obs: d.obs, validacao: d.validacao||'',
         updated_at: ts
       }, { onConflict:'card_id' });
+
+      // Garantir que o card também exista em auditoria_cards (evita controles órfãos)
+      // Buscar dados do card no allData
+      let cardData = null;
+      for (const key of Object.keys(allData)) {
+        const found = (allData[key] || []).find(x => x.id === id);
+        if (found) { cardData = found; break; }
+      }
+      if (cardData) {
+        await supabaseClient.from('auditoria_cards').upsert({
+          id: cardData.id, titulo: cardData.titulo, tipo: cardData.tipo,
+          carteira: cardData.carteira || c, responsavel: cardData.responsavel || '',
+          fase: cardData.fase || '', data_vencimento: cardData.data_vencimento || '',
+          dias_atraso: cardData.dias_atraso || 0, solicitacao: cardData.solicitacao || '',
+          concorrente: cardData.concorrente || '', link_pipefy: cardData.link_pipefy || '',
+          data_onboarding: cardData.data_onboarding || '',
+          pipe_id: cardData.pipe_id || '', report_id: cardData.report_id || '',
+          synced_at: ts
+        }, { onConflict: 'id' });
+      }
     } catch(e) { console.warn('Save err:', e.message); }
   } else {
     localStorage.setItem('auditoria_controles', JSON.stringify(controlData));
@@ -2152,10 +2172,16 @@ function renderResumo() {
   // Analista concluídos (atrasos only, specific list)
   const analistaStats = {};
   ANALISTAS_PAINEL.forEach(a => { analistaStats[a] = { total:0, byCarteira:{} }; CARTEIRAS_ALL.forEach(c => analistaStats[a].byCarteira[c]=0); });
+  // Conjunto de IDs de cards que existem de verdade na tela (têm dados completos)
+  const idsComDados = new Set();
+  Object.keys(allData).forEach(key => {
+    (allData[key] || []).forEach(card => idsComDados.add(card.id));
+  });
+
   CARTEIRAS_ALL.forEach(c => {
-    // Contar só os concluídos HOJE
+    // Contar concluídos HOJE — APENAS cards que existem no allData (consistência com a tabela)
     Object.entries(controlData[c] || {}).forEach(([cardId, ctrl]) => {
-      if (isFinalizadoHoje(ctrl) && analistaStats[ctrl.analista]) {
+      if (isFinalizadoHoje(ctrl) && idsComDados.has(cardId) && analistaStats[ctrl.analista]) {
         analistaStats[ctrl.analista].total++;
         analistaStats[ctrl.analista].byCarteira[c] = (analistaStats[ctrl.analista].byCarteira[c] || 0) + 1;
       }
