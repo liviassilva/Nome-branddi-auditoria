@@ -3340,10 +3340,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Detecção de fase pelos comentários ──
-  function neagDetectarFase(texto) {
-    var t = (texto || '').toLowerCase();
-    if (/(carta com ar|aviso de recebimento|\bAR\b|notifica..o f.sica|litígio|litigio|ajuizamento|pffa)/i.test(t)) return 'Fase 3';
-    if (/(notifica..o extrajudicial|\bne\b digital|enviada a ne|ne enviada|escrit.rio parceiro|procura..o)/i.test(t)) return 'Fase 2';
+  // Detecta a fase pelo NOME da fase do card OPEC (sinal confiável da Jornada de Notificações),
+  // e NÃO pelo texto solto dos comentários (que dava falso-positivo, ex.: o "ar" de \bAR\b).
+  // Convenção do pipe OPEC: "...Notificação Extrajudicial" = NE digital (Fase 2);
+  // "Advogado"/"Litígio"/carta-AR/física = escalado (Fase 3); todo o resto (Novas Ocorrências,
+  // N1.*, Hotline, Mediação, tentativas, tratativas…) = triagem antes da NE (Fase 1).
+  function neagDetectarFase(faseNome) {
+    var p = (faseNome || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    if (/advogad|litigio|carta com ar|aviso de recebimento|notifica\w*\s*fisica/.test(p)) return 'Fase 3';
+    if (/notifica\w*\s*extrajudicial/.test(p)) return 'Fase 2';
     return 'Fase 1';
   }
 
@@ -3372,7 +3377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         (pf.card.labels || []).forEach(function (l) { labels.push(l.name || ''); });
       }
       var blob = comments.join('  \n  ') + ' ' + phase;
-      var fase = neagDetectarFase(blob);
+      var fase = neagDetectarFase(phase); // usa o NOME da fase do card OPEC (confiável), não o texto dos comentários
       var abertura = /aberto/i.test(blob);
       var recusa = /(neg(ou|aram|ou-se|a-se)[^.]{0,40}(negativ|contat))|n[ãa]o (deseja|quer)( mais)? (ser )?contat|recus(ou|a-se|aram)|n[ãa]o deseja contato/i.test(blob);
       var labLow = labels.map(function (s) { return (s || '').toLowerCase(); });
