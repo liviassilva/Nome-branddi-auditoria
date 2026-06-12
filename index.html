@@ -271,6 +271,8 @@ input, select, textarea, button { font-family: var(--font); }
   transition: border-color 0.15s;
 }
 .filter-select:focus { border-color: var(--brand); }
+/* O select "Definir Analista" da barra tem texto branco (p/ a barra verde); sem isto, as opcoes ficam branco-no-branco e somem. Forca opcoes legiveis. */
+#bulk-analista option { color: var(--text); background: var(--surface); }
 
 /* Stats pills */
 .progress-wrap { display: flex; align-items: center; gap: 8px; }
