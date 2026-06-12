@@ -3479,7 +3479,7 @@ document.addEventListener('DOMContentLoaded', () => {
       '<div class="neag-sect">Critérios do score</div>' +
       '<div class="neag-form">' +
         neagSel('neag-termo', 'Característica do termo', [['', '— selecionar —'], ['25', 'Puro'], ['15', 'Composto'], ['5', 'Genérico']]) +
-        neagSel('neag-seg', 'Relação com o segmento', [['', '— selecionar —'], ['20', 'Mesmo segmento (direto)'], ['10', 'Correlato'], ['0', 'Distinto']]) +
+        neagSel('neag-seg', 'Relação com o segmento', [['', '— selecionar —'], ['20', 'Sim (mesmo segmento ou relacionado)'], ['0', 'Não (não relacionado / distinto)']]) +
         neagSel('neag-rank', 'Posição no ranking', [['', '— selecionar —'], ['top5', 'Top 1–5'], ['top10', 'Top 6–10'], ['fora', 'Fora do Top 10']], posExata != null ? ('Posição atual no BMS: ' + posExata + 'ª') : '') +
         neagSel('neag-freq', 'Frequência / recorrência', [['', '— selecionar —'], ['15', 'Alta (ativo em 14d e 7d)'], ['0', 'Baixa / inativo']]) +
         neagSel('neag-pos', 'Posicionamento do concorrente', [['', '— selecionar —'], ['5', 'Sem resposta'], ['15', 'Recusa expressa']]) +
