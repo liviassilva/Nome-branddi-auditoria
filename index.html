@@ -1569,7 +1569,7 @@ async function saveCardsToSupabase(cards) {
     const ctrl = controlData[carteira]?.[card.id];
     if (!ctrl) continue;
     // Se estava finalizado como Sim, verificar se a data mudou
-    if (ctrl.finalizado === 'Sim') {
+    if (false) { // (jun/2026) DESATIVADO: a sincronização não apaga mais finalizado/analista — o reset é DIÁRIO (via isFinalizadoHoje), nunca apaga o Sim do dia
       // Buscar data anterior salva no Supabase
       try {
         const { data: prev } = await supabaseClient
@@ -1605,7 +1605,7 @@ function setupRealtime() {
       const r = p.new || {};
       if (!r.carteira || !r.card_id) return;
       if (!controlData[r.carteira]) controlData[r.carteira] = {};
-      if (p.eventType !== 'DELETE') controlData[r.carteira][r.card_id] = { finalizado:r.finalizado||'Não', analista:r.analista||'', obs:r.obs||'' };
+      if (p.eventType !== 'DELETE') controlData[r.carteira][r.card_id] = { finalizado:r.finalizado||'Não', analista:r.analista||'', obs:r.obs||'', validacao:r.validacao||'', updated_at:r.updated_at||null };
       renderCarteira(currentSection, r.carteira);
     }).subscribe();
 }
@@ -1865,7 +1865,7 @@ function renderCarteira(section, c) {
     ? (allData[`${section}_${c}`] || []).filter(r => r.tipo === currentOutroTipo)
     : (allData[`${section}_${c}`] || []);
   const total = baseRows.length;
-  const done  = baseRows.filter(r => controlData[c]?.[r.id]?.finalizado === 'Sim').length;
+  const done  = baseRows.filter(r => { const cc = (c === 'Todos') ? (r.carteira || 'Sem Carteira') : c; return isFinalizadoHoje(controlData[cc]?.[r.id]); }).length;
   const pct   = total ? Math.round(done/total*100) : 0;
 
   if (statsEl) statsEl.innerHTML = `
@@ -1907,7 +1907,10 @@ function renderCarteira(section, c) {
   tbody.innerHTML = rows.map(r => {
     const ctrlCart = c === 'Todos' ? (r.carteira || c) : c;
     const ctrl = controlData[ctrlCart]?.[r.id] || { finalizado:'Não', analista:'', obs:'', validacao:'' };
-    const aOpts = ANALISTAS.map(a => `<option value="${a}"${ctrl.analista===a?' selected':''}>${a}</option>`).join('');
+    // "Finalizado" é diário: só mostra Sim/analista se foi finalizado HOJE; dias anteriores viram Não (sem apagar o histórico).
+    const finHoje = isFinalizadoHoje(ctrl);
+    const aSel = finHoje ? ctrl.analista : '';
+    const aOpts = ANALISTAS.map(a => `<option value="${a}"${aSel===a?' selected':''}>${a}</option>`).join('');
     const col   = TIPOS_CONFIG[r.tipo]?.color || 'desatualizados';
     const dCls  = r.dias_atraso > 30 ? 'days-critical' : r.dias_atraso > 7 ? 'days-warn' : 'days-ok';
     return `<tr>
@@ -1933,10 +1936,10 @@ function renderCarteira(section, c) {
       <td>${r.fase ? `<span class="fase-badge fase-${slugFase(r.fase)}">${esc(r.fase)}</span>` : '—'}</td>
       <td style="font-family:var(--mono);font-size:11px;white-space:nowrap">${r.data_vencimento||'—'}</td>
       <td>
-        <select class="select-cell${ctrl.finalizado==='Sim'?' sim':' nao'}"
+        <select class="select-cell${finHoje?' sim':' nao'}"
           onchange="updateCtrl('${r.carteira||c}','${r.id}','finalizado',this.value,this)">
-          <option value="Não"${ctrl.finalizado!=='Sim'?' selected':''}>Não</option>
-          <option value="Sim"${ctrl.finalizado==='Sim'?' selected':''}>Sim</option>
+          <option value="Não"${!finHoje?' selected':''}>Não</option>
+          <option value="Sim"${finHoje?' selected':''}>Sim</option>
         </select>
       </td>
       <td>
@@ -1987,6 +1990,8 @@ function updateCtrl(c, id, field, val, el) {
   if (!controlData[c]) controlData[c] = {};
   if (!controlData[c][id]) controlData[c][id] = { finalizado:'Não', analista:'', obs:'', validacao:'' };
   controlData[c][id][field] = val;
+  // Carimba a data de HOJE na finalização/escolha de analista (base do "finalizado hoje"); edições de obs/validação não redatam.
+  if (field === 'finalizado' || field === 'analista') controlData[c][id].updated_at = new Date().toISOString();
   if (field === 'finalizado') {
     el.className = 'select-cell' + (val==='Sim'?' sim':' nao');
     renderCarteira(currentSection, c);
@@ -2000,13 +2005,13 @@ async function persistCtrl(c, id) {
   const d = controlData[c]?.[id];
   if (!d) return;
   const ts = new Date().toISOString();
-  d.updated_at = ts; // atualizar localmente para o painel refletir hoje
+  if (!d.updated_at) d.updated_at = ts; // preserva a data da finalização (edições de obs/validação não redatam o "hoje")
   if (supabaseClient) {
     try {
       await supabaseClient.from('auditoria_controles').upsert({
         carteira: c, card_id: id,
         finalizado: d.finalizado, analista: d.analista, obs: d.obs, validacao: d.validacao||'',
-        updated_at: ts
+        updated_at: d.updated_at
       }, { onConflict:'card_id' });
 
       // Garantir que o card também exista em auditoria_cards (evita controles órfãos)
