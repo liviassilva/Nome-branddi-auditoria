@@ -3462,16 +3462,12 @@ document.addEventListener('DOMContentLoaded', () => {
     var inpiURL = 'https://busca.inpi.gov.br/pePI/jsp/marcas/Pesquisa_classe_basica.jsp';
     var aggR = (NEAG.auto && NEAG.auto.aggressor) ? NEAG.auto.aggressor : null;
     var posExata = (aggR && aggR.bestPosition != null) ? aggR.bestPosition : null;
-    var cmtsHtml = (NEAG.comments || []).filter(function (t) { return t && t.trim(); }).slice(0, 4)
-      .map(function (t) { var s = t.replace(/\s+/g, ' ').trim(); if (s.length > 180) s = s.substring(0, 180) + '…'; return '<div style="margin-bottom:5px">• ' + neagEsc(s) + '</div>'; }).join('') || '<div class="neag-hint">Sem comentários no card.</div>';
     document.getElementById('neag-body').innerHTML =
       '<div class="neag-row">' +
         '<span class="neag-badge">' + neagEsc(card.brand || 'Card') + '</span>' +
         (card.concorrente ? '<span class="neag-badge alt">vs ' + neagEsc(card.concorrente) + '</span>' : '') +
       '</div>' +
       '<div class="neag-hint" style="margin:6px 0 10px">Confirme os campos (pré-preenchidos quando dá) e clique em Calcular sugestão. Roda tudo no navegador.</div>' +
-      '<div class="neag-sect">Resumo do card (últimos comentários)</div>' +
-      '<div style="font-size:11.5px;line-height:1.5;color:var(--text2,#475569);max-height:150px;overflow:auto;background:var(--surface2,#f8fafc);border-radius:8px;padding:8px 10px;margin-bottom:4px">' + cmtsHtml + '</div>' +
       '<div class="neag-form">' +
         neagSel('neag-fase', 'Fase do caso', [['Fase 1', 'Fase 1 — Triagem'], ['Fase 2', 'Fase 2 — NE digital enviada'], ['Fase 3', 'Fase 3 — NE física enviada']], 'Detectado dos comentários — ajuste se preciso') +
         '<div class="neag-grp"><div class="neag-lbl">Status no INPI</div><select class="neag-input" id="neag-inpi">' +
