@@ -3407,6 +3407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         posicionamento: recusa ? 'recusa' : 'sem', ciencia: abertura ? 'sim' : 'nao',
         topLeilao: topLeilao, aggressor: aggr, bmsFound: !!(bms && bms.found), bmsErro: bmsErro, pipeOk: !!(pf && pf.card)
       };
+      NEAG.comments = comments;
       neagRenderForm();
       neagAplicarAuto();
     } catch (e) {
@@ -3425,6 +3426,8 @@ document.addEventListener('DOMContentLoaded', () => {
     neagSet('neag-pos', a.posicionamento === 'recusa' ? 15 : 5);
     neagSet('neag-cien', a.ciencia === 'sim' ? 5 : 0);
     neagSet('neag-tag', a.topLeilao === 'ativo' ? 5 : a.topLeilao === 'inativo' ? 0 : '');
+    var apAgr = (a.aggressor && a.aggressor.aggressionPoints != null) ? a.aggressor.aggressionPoints : null;
+    if (apAgr != null) neagSet('neag-agr', apAgr >= 30 ? 10 : apAgr >= 8 ? 6 : apAgr > 0 ? 3 : 0); // bandas ajustáveis
     var agg = a.aggressor;
     var resumo = [
       a.pipeOk ? 'Pipefy lido ✓' : 'Pipefy não lido',
@@ -3457,12 +3460,18 @@ document.addEventListener('DOMContentLoaded', () => {
     var card = NEAG.card;
     var fase = card.faseDetectada || 'Fase 1';
     var inpiURL = 'https://busca.inpi.gov.br/pePI/jsp/marcas/Pesquisa_classe_basica.jsp';
+    var aggR = (NEAG.auto && NEAG.auto.aggressor) ? NEAG.auto.aggressor : null;
+    var posExata = (aggR && aggR.bestPosition != null) ? aggR.bestPosition : null;
+    var cmtsHtml = (NEAG.comments || []).filter(function (t) { return t && t.trim(); }).slice(0, 4)
+      .map(function (t) { var s = t.replace(/\s+/g, ' ').trim(); if (s.length > 180) s = s.substring(0, 180) + '…'; return '<div style="margin-bottom:5px">• ' + neagEsc(s) + '</div>'; }).join('') || '<div class="neag-hint">Sem comentários no card.</div>';
     document.getElementById('neag-body').innerHTML =
       '<div class="neag-row">' +
         '<span class="neag-badge">' + neagEsc(card.brand || 'Card') + '</span>' +
         (card.concorrente ? '<span class="neag-badge alt">vs ' + neagEsc(card.concorrente) + '</span>' : '') +
       '</div>' +
       '<div class="neag-hint" style="margin:6px 0 10px">Confirme os campos (pré-preenchidos quando dá) e clique em Calcular sugestão. Roda tudo no navegador.</div>' +
+      '<div class="neag-sect">Resumo do card (últimos comentários)</div>' +
+      '<div style="font-size:11.5px;line-height:1.5;color:var(--text2,#475569);max-height:150px;overflow:auto;background:var(--surface2,#f8fafc);border-radius:8px;padding:8px 10px;margin-bottom:4px">' + cmtsHtml + '</div>' +
       '<div class="neag-form">' +
         neagSel('neag-fase', 'Fase do caso', [['Fase 1', 'Fase 1 — Triagem'], ['Fase 2', 'Fase 2 — NE digital enviada'], ['Fase 3', 'Fase 3 — NE física enviada']], 'Detectado dos comentários — ajuste se preciso') +
         '<div class="neag-grp"><div class="neag-lbl">Status no INPI</div><select class="neag-input" id="neag-inpi">' +
@@ -3475,11 +3484,12 @@ document.addEventListener('DOMContentLoaded', () => {
       '<div class="neag-form">' +
         neagSel('neag-termo', 'Característica do termo', [['', '— selecionar —'], ['25', 'Puro'], ['15', 'Composto'], ['5', 'Genérico']]) +
         neagSel('neag-seg', 'Relação com o segmento', [['', '— selecionar —'], ['20', 'Mesmo segmento (direto)'], ['10', 'Correlato'], ['0', 'Distinto']]) +
-        neagSel('neag-rank', 'Posição no ranking', [['', '— selecionar —'], ['5', 'Top 1–5'], ['3', 'Top 6–10'], ['0', 'Fora do Top 10']]) +
+        neagSel('neag-rank', 'Posição no ranking', [['', '— selecionar —'], ['5', 'Top 1–5'], ['3', 'Top 6–10'], ['0', 'Fora do Top 10']], posExata != null ? ('Posição atual no BMS: ' + posExata + 'ª') : '') +
         neagSel('neag-freq', 'Frequência / recorrência', [['', '— selecionar —'], ['15', 'Alta (ativo em 14d e 7d)'], ['0', 'Baixa / inativo']]) +
         neagSel('neag-pos', 'Posicionamento do concorrente', [['', '— selecionar —'], ['5', 'Sem resposta'], ['15', 'Recusa expressa']]) +
         neagSel('neag-cien', 'Abertura do e-mail (ciência)', [['', '— selecionar —'], ['0', 'Não / sem comprovação'], ['5', 'Sim, comprovada']]) +
         neagSel('neag-tag', 'Tag "Top Leilão" no card', [['', '— selecionar —'], ['0', 'Inativo / sem a tag'], ['5', 'Ativo']]) +
+        neagSel('neag-agr', 'Agressividade (BMS)', [['', '— selecionar —'], ['10', 'Alta'], ['6', 'Média'], ['3', 'Baixa'], ['0', 'Mínima / sem dados']]) +
       '</div>' +
       '<div class="neag-sect">Contexto da decisão</div>' +
       '<div class="neag-form" id="neag-ctx">' + neagCtxHtml(fase) + '</div>';
@@ -3499,15 +3509,15 @@ document.addEventListener('DOMContentLoaded', () => {
     var inpi = neagVal('neag-inpi') || 'Não localizado';
     var bloqueado = inpi === 'Sem registro' || inpi === 'Arquivada';
     var A = neagNum('neag-termo'), B = neagNum('neag-seg'), C1 = neagNum('neag-rank'),
-      D = neagNum('neag-freq'), E = neagNum('neag-pos'), F = neagNum('neag-cien'), G = neagNum('neag-tag');
+      D = neagNum('neag-freq'), E = neagNum('neag-pos'), F = neagNum('neag-cien'), G = neagNum('neag-tag'), H = neagNum('neag-agr');
     var score = bloqueado
-      ? { A_termo: 0, B_segmento: 0, C1_ranking: 0, D_frequencia: 0, E_posicionamento: 0, F_ciencia: 0, G_topleilao: 0, total: 0 }
-      : { A_termo: A, B_segmento: B, C1_ranking: C1, D_frequencia: D, E_posicionamento: E, F_ciencia: F, G_topleilao: G, total: A + B + C1 + D + E + F + G };
+      ? { A_termo: 0, B_segmento: 0, C1_ranking: 0, D_frequencia: 0, E_posicionamento: 0, F_ciencia: 0, G_topleilao: 0, H_agressividade: 0, total: 0 }
+      : { A_termo: A, B_segmento: B, C1_ranking: C1, D_frequencia: D, E_posicionamento: E, F_ciencia: F, G_topleilao: G, H_agressividade: H, total: A + B + C1 + D + E + F + G + H };
     var total = score.total;
     var topLabel = C1 === 5 ? 'Top 1–5' : (C1 === 3 ? 'Top 6–10' : 'fora do Top 10');
 
     var pontos = [], ausentes = [];
-    var campos = [['neag-termo', 'Característica do termo'], ['neag-seg', 'Relação com o segmento'], ['neag-rank', 'Posição no ranking'], ['neag-freq', 'Frequência'], ['neag-pos', 'Posicionamento'], ['neag-cien', 'Ciência'], ['neag-tag', 'Tag Top Leilão']];
+    var campos = [['neag-termo', 'Característica do termo'], ['neag-seg', 'Relação com o segmento'], ['neag-rank', 'Posição no ranking'], ['neag-freq', 'Frequência'], ['neag-pos', 'Posicionamento'], ['neag-cien', 'Ciência'], ['neag-tag', 'Tag Top Leilão'], ['neag-agr', 'Agressividade (BMS)']];
     if (!bloqueado) {
       if (neagVal('neag-termo') === '15' || neagVal('neag-termo') === '5') pontos.push('Termo composto/genérico: notificações sem o termo institucional têm menor força e abrem margem a questionamentos — seguir é uma decisão com risco envolvido.');
       if (neagVal('neag-freq') === '0') pontos.push('Frequência baixa/inativo (D=0): reavaliar a agressividade antes de notificar.');
@@ -3520,16 +3530,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (bloqueado) {
       decisao = 'Reprovado no filtro INPI (marca ' + inpi + '). Não seguir para NE, salvo orientação expressa do Jurídico, do CS Front ou do cliente.';
     } else if (fase === 'Fase 1') {
-      if (total < 11) { decisao = 'Pouca agressividade (score ' + total + '/90). Não é viável seguir para NE agora — decisão: sugerir whitelist ao cliente (e-mail abaixo) e seguir monitorando.'; apendice = 'F'; }
-      else { decisao = 'Caso viável para NE (score ' + total + '/90, ' + topLabel + '). Decisão: sugerir ao cliente o envio de Notificação Extrajudicial — usar o e-mail abaixo. Em paralelo, ativar a contraprova dos termos do concorrente.'; apendice = 'B'; }
+      if (total < 11) { decisao = 'Pouca agressividade (score ' + total + '/100). Não é viável seguir para NE agora — decisão: sugerir whitelist ao cliente (e-mail abaixo) e seguir monitorando.'; apendice = 'F'; }
+      else { decisao = 'Caso viável para NE (score ' + total + '/100, ' + topLabel + '). Decisão: sugerir ao cliente o envio de Notificação Extrajudicial — usar o e-mail abaixo. Em paralelo, ativar a contraprova dos termos do concorrente.'; apendice = 'B'; }
     } else if (fase === 'Fase 2') {
       if (neagVal('neag-sucesso') === 'sim') decisao = 'Encerrar — o concorrente cessou a prática após a NE digital.';
-      else if (total < 13) { decisao = 'Agressividade baixa (score ' + total + ' < 13). Recomendar inclusão em whitelist.'; apendice = 'F'; }
-      else { var aut = neagVal('neag-autoriz'); if (aut !== 'sim') { decisao = 'Score ' + total + ' ≥ 13, mas o cliente ' + (aut === 'nao' ? 'não autorizou' : 'ainda não autorizou (pendente)') + ' a NE física. Avaliar whitelist ou aguardar a autorização.'; apendice = 'F'; } else { decisao = 'Escalar para NE física (carta com AR) — score ' + total + ' ≥ 13 e cliente autorizou.'; apendice = 'C'; } }
+      else if (total < 13) { decisao = 'Agressividade baixa (score ' + total + '/100 < 13). Recomendar inclusão em whitelist.'; apendice = 'F'; }
+      else { var aut = neagVal('neag-autoriz');
+        if (aut === 'sim') { decisao = 'Escalar para NE física (carta com AR) — score ' + total + '/100 e cliente autorizou.'; apendice = 'C'; }
+        else { decisao = 'Caso viável e sem resolução (score ' + total + '/100' + (neagVal('neag-pos') === '15' ? ', com recusa expressa' : '') + '). Decisão: SUGERIR ao cliente o envio formal da Notificação Extrajudicial (via escritório parceiro ou carta com AR) — usar o e-mail abaixo.'; apendice = 'B'; } }
     } else {
       if (neagVal('neag-sucesso') === 'sim') decisao = 'Encerrar — o concorrente cessou a prática após a NE física.';
-      else if (total < 15) { decisao = 'Agressividade baixa (score ' + total + ' < 15). Recomendar inclusão em whitelist.'; apendice = 'F'; }
-      else { var via = neagVal('neag-via'); decisao = 'Score ' + total + ' ≥ 15 e sem resolução após a NE física. Próximo passo: litígio / aconselhamento jurídico (' + (via === 'interno' ? 'reforço interno + escritório parceiro' : 'via escritório parceiro / PFFA') + ').'; apendice = via === 'interno' ? 'E' : 'D'; }
+      else if (total < 15) { decisao = 'Agressividade baixa (score ' + total + '/100 < 15). Recomendar inclusão em whitelist.'; apendice = 'F'; }
+      else { var via = neagVal('neag-via'); decisao = 'Score ' + total + '/100 ≥ 15 e sem resolução após a NE física. Próximo passo: litígio / aconselhamento jurídico (' + (via === 'interno' ? 'reforço interno + escritório parceiro' : 'via escritório parceiro / PFFA') + ').'; apendice = via === 'interno' ? 'E' : 'D'; }
     }
 
     var aggr = NEAG.auto ? NEAG.auto.aggressor : null;
@@ -3562,20 +3574,20 @@ document.addEventListener('DOMContentLoaded', () => {
       : (ctx.ciencia ? 'a ausência de avanço nas tratativas, ainda que tenha havido ciência das comunicações' : 'a ausência de resposta por parte do agressor');
     var assunto = '', corpo = '';
     if (apendice === 'B') {
-      assunto = 'Sugestão de Notificação Extrajudicial | ' + cliente + ' - ' + agressor + ' | Branddi';
+      assunto = 'Sugestão de Notificação Extrajudicial ' + agressor + ' - ' + cliente + ' | Branddi';
       corpo = 'Olá, pessoal! Tudo bem?\n\nEstamos entrando em contato para informar que as etapas de mediação amigável com o agressor ' + agressor + ' (' + dominio + ') foram esgotadas; no entanto, anúncios seguem sendo registrados no monitoramento para os termos ' + termos + '.\n\nAtualmente, o agressor ocupa ' + posTxt + ' nas buscas pelos termos da marca. ' + tratativa + ' Em anexo seguem as evidências capturadas nos últimos 14 dias.\n\nComo já esgotamos todas as tentativas de uma resolução amigável, precisamos escalar a tratativa com uma comunicação mais formal. Sendo assim, sugerimos o envio de uma notificação extrajudicial para o agressor, o que formaliza a nossa solicitação de negativação das palavras-chave.\n\nA notificação pode ser enviada de forma bonificada através do nosso escritório de advocacia parceiro, sem custos extras no contrato — basta assinar uma procuração autorizando o escritório a fazer o envio. Caso prefiram seguir internamente, compartilharemos a minuta da Notificação Extrajudicial em formato aberto, para que o jurídico de vocês possa fazer ajustes, junto aos contatos identificados como válidos e às evidências.\n\nPor fim, destacamos a importância de garantir que o termo do concorrente também esteja negativado nas campanhas de vocês antes do envio. Em razão disso, poderiam confirmar se a negativação realizada anteriormente permanece aplicada nas contas de vocês (ou nos enviar um print da negativação)? Nossa equipe também ativou uma contraprova dos termos do concorrente e, caso identifiquemos qualquer anúncio, sinalizaremos para que possam realizar o ajuste.\n\nFicamos no aguardo do posicionamento de vocês sobre como gostariam de seguir. Qualquer dúvida, estamos à disposição!' + avisoA + '\n\nAbraços,';
     } else if (apendice === 'C') {
       assunto = 'Notificação extrajudicial – nova tentativa via carta com AR | ' + cliente + ' - Branddi';
-      corpo = 'Olá, ' + cliente + '! Tudo bem?\n\nSeguimos acompanhando o cenário envolvendo o domínio ' + dominio + ' e, conforme alinhado anteriormente, realizamos o envio da notificação extrajudicial por e-mail, através do nosso escritório de advocacia parceiro.\n\nContudo, até o momento não houve retorno por parte do destinatário, tampouco identificamos qualquer mudança no comportamento do concorrente quanto à negativação do termo da marca.\n\nDiante disso, e como forma de formalizar mais uma vez a solicitação, nossa equipe irá viabilizar o reenvio da notificação por carta com Aviso de Recebimento (AR). Essa ação visa garantir um novo registro formal do pedido, com comprovação do recebimento, como último passo nesta etapa extrajudicial.\n\nAssim que houver atualização sobre o recebimento ou qualquer movimentação por parte do concorrente, manteremos vocês informados.\n\nFicamos à disposição para qualquer dúvida.\n\nAbraços,';
+      corpo = 'Olá, pessoal! Tudo bem?\n\nSeguimos acompanhando o cenário envolvendo o domínio ' + dominio + ' e, conforme alinhado anteriormente, realizamos o envio da notificação extrajudicial por e-mail, através do nosso escritório de advocacia parceiro.\n\nContudo, até o momento não houve retorno por parte do destinatário, tampouco identificamos qualquer mudança no comportamento do concorrente quanto à negativação do termo da marca.\n\nDiante disso, e como forma de formalizar mais uma vez a solicitação, nossa equipe irá viabilizar o reenvio da notificação por carta com Aviso de Recebimento (AR). Essa ação visa garantir um novo registro formal do pedido, com comprovação do recebimento, como último passo nesta etapa extrajudicial.\n\nAssim que houver atualização sobre o recebimento ou qualquer movimentação por parte do concorrente, manteremos vocês informados.\n\nFicamos à disposição para qualquer dúvida.\n\nAbraços,';
     } else if (apendice === 'D') {
       assunto = 'Atualização sobre notificação extrajudicial – próximos passos possíveis | ' + cliente + ' - Branddi';
-      corpo = 'Olá, ' + cliente + '! Tudo bem?\n\nSeguimos acompanhando o cenário da marca de vocês e gostaríamos de sinalizar que, mesmo após o envio da notificação extrajudicial realizada por meio do nosso escritório de advocacia parceiro, ainda estamos registrando anúncios ativos do concorrente ' + agressor + ' para o seu termo de marca.\n\nDiante disso, existem dois caminhos possíveis para os próximos passos:\n\n1) Aconselhamento Jurídico Interno (Branddi): agendar um bate-papo com o nosso jurídico interno, que poderá orientar quanto às opções legais e estratégicas disponíveis. Também podemos elaborar um dossiê completo do caso, reunindo todas as evidências capturadas.\n\n2) Continuidade com o Escritório de Advocacia Parceiro: conversa direta com o escritório que já enviou a notificação, que poderá esclarecer dúvidas e, se for do interesse de vocês, dar sequência ao processo com o ajuizamento da ação.\n\nEm último caso, caso não optem pela sequência do caso, sugerimos que o domínio seja adicionado em whitelist.\n\nEstamos à disposição para apoiar no que for necessário e garantir que a marca siga protegida. Nos avisem como preferem seguir.\n\nAbraços,';
+      corpo = 'Olá, pessoal! Tudo bem?\n\nSeguimos acompanhando o cenário da marca de vocês e gostaríamos de sinalizar que, mesmo após o envio da notificação extrajudicial realizada por meio do nosso escritório de advocacia parceiro, ainda estamos registrando anúncios ativos do concorrente ' + agressor + ' para o seu termo de marca.\n\nDiante disso, existem dois caminhos possíveis para os próximos passos:\n\n1) Aconselhamento Jurídico Interno (Branddi): agendar um bate-papo com o nosso jurídico interno, que poderá orientar quanto às opções legais e estratégicas disponíveis. Também podemos elaborar um dossiê completo do caso, reunindo todas as evidências capturadas.\n\n2) Continuidade com o Escritório de Advocacia Parceiro: conversa direta com o escritório que já enviou a notificação, que poderá esclarecer dúvidas e, se for do interesse de vocês, dar sequência ao processo com o ajuizamento da ação.\n\nEm último caso, caso não optem pela sequência do caso, sugerimos que o domínio seja adicionado em whitelist.\n\nEstamos à disposição para apoiar no que for necessário e garantir que a marca siga protegida. Nos avisem como preferem seguir.\n\nAbraços,';
     } else if (apendice === 'E') {
       assunto = 'Atualização sobre notificação extrajudicial – suporte adicional disponível | ' + cliente + ' - Branddi';
-      corpo = 'Olá, ' + cliente + '! Tudo bem?\n\nSeguimos monitorando o cenário da marca de vocês e, mesmo após o envio da notificação extrajudicial realizado internamente, ainda identificamos anúncios ativos do concorrente ' + agressor + ' para o termo da marca.\n\nSabemos que nem sempre a notificação inicial é suficiente para cessar a prática e, por isso, reforçamos que vocês contam com suporte adicional da Branddi:\n\n1) Reenvio via nosso escritório parceiro: novo envio da notificação com reforço jurídico especializado em Brand Bidding, com condições diferenciadas, inclusive para eventual ajuizamento da ação.\n\n2) Aconselhamento Jurídico Interno (Branddi): bate-papo com o nosso jurídico interno + dossiê completo do caso, reunindo todas as evidências capturadas.\n\nEm último caso, caso não optem pela sequência, sugerimos que o domínio seja adicionado em whitelist.\n\nEstamos à disposição. É só nos sinalizar como preferem seguir para que possamos organizar os encaminhamentos com agilidade.\n\nAbraços,';
+      corpo = 'Olá, pessoal! Tudo bem?\n\nSeguimos monitorando o cenário da marca de vocês e, mesmo após o envio da notificação extrajudicial realizado internamente, ainda identificamos anúncios ativos do concorrente ' + agressor + ' para o termo da marca.\n\nSabemos que nem sempre a notificação inicial é suficiente para cessar a prática e, por isso, reforçamos que vocês contam com suporte adicional da Branddi:\n\n1) Reenvio via nosso escritório parceiro: novo envio da notificação com reforço jurídico especializado em Brand Bidding, com condições diferenciadas, inclusive para eventual ajuizamento da ação.\n\n2) Aconselhamento Jurídico Interno (Branddi): bate-papo com o nosso jurídico interno + dossiê completo do caso, reunindo todas as evidências capturadas.\n\nEm último caso, caso não optem pela sequência, sugerimos que o domínio seja adicionado em whitelist.\n\nEstamos à disposição. É só nos sinalizar como preferem seguir para que possamos organizar os encaminhamentos com agilidade.\n\nAbraços,';
     } else if (apendice === 'F') {
       assunto = 'Encerramento de tratativas com ' + agressor + ' – ' + cliente + ' | Branddi';
-      corpo = 'Olá, ' + cliente + '! Tudo bem?\n\nEstamos passando para atualizá-los sobre o fim das comunicações com o agressor ' + agressor + '.\n\nApós as tentativas de contato realizadas (por e-mail, telefone, entre outros), finalizamos as comunicações em razão de ' + motivoEnc + '.\n\nApesar disso, analisando os dados atuais, observamos que a agressividade do domínio permanece muito baixa, com poucos anúncios ativos,' + semPuro + ' com posicionamentos menos relevantes nas buscas e sem aparições recentes no leilão.\n\nDiante desse cenário, nossa recomendação é que o domínio seja incluído em whitelist neste momento — ou seja, que o caso não seja priorizado para novas ações enquanto o comportamento seguir com esse mesmo padrão.\n\nSeguiremos com o monitoramento constante e, caso o domínio volte a apresentar um padrão de agressividade mais alto, sinalizaremos prontamente para reavaliarmos o caso e, se necessário, retomarmos as ações — seja com nova tentativa de contato, notificação extrajudicial ou encaminhamentos jurídicos adicionais.\n\nPodemos seguir desta forma?\n\nFicamos à disposição para qualquer dúvida!\n\nAbraços,';
+      corpo = 'Olá, pessoal! Tudo bem?\n\nEstamos passando para atualizá-los sobre o fim das comunicações com o agressor ' + agressor + '.\n\nApós as tentativas de contato realizadas (por e-mail, telefone, entre outros), finalizamos as comunicações em razão de ' + motivoEnc + '.\n\nApesar disso, analisando os dados atuais, observamos que a agressividade do domínio permanece muito baixa, com poucos anúncios ativos,' + semPuro + ' com posicionamentos menos relevantes nas buscas e sem aparições recentes no leilão.\n\nDiante desse cenário, nossa recomendação é que o domínio seja incluído em whitelist neste momento — ou seja, que o caso não seja priorizado para novas ações enquanto o comportamento seguir com esse mesmo padrão.\n\nSeguiremos com o monitoramento constante e, caso o domínio volte a apresentar um padrão de agressividade mais alto, sinalizaremos prontamente para reavaliarmos o caso e, se necessário, retomarmos as ações — seja com nova tentativa de contato, notificação extrajudicial ou encaminhamentos jurídicos adicionais.\n\nPodemos seguir desta forma?\n\nFicamos à disposição para qualquer dúvida!\n\nAbraços,';
     }
     return { assunto: assunto, corpo: corpo, apendice_usado: apendice };
   }
@@ -3584,7 +3596,7 @@ document.addEventListener('DOMContentLoaded', () => {
     A_termo: 'A · Característica do termo (máx 25)', B_segmento: 'B · Relação com segmento (máx 20)',
     C1_ranking: 'C1 · Posição no ranking (máx 5)', D_frequencia: 'D · Frequência / recorrência (máx 15)',
     E_posicionamento: 'E · Posicionamento concorrente (máx 15)', F_ciencia: 'F · Abertura do e-mail / ciência (máx 5)',
-    G_topleilao: 'G · Tag Top Leilão Ativo (máx 5)'
+    G_topleilao: 'G · Tag Top Leilão Ativo (máx 5)', H_agressividade: 'H · Agressividade (BMS) (máx 10)'
   };
 
   // ── Resultado ──
@@ -3592,7 +3604,7 @@ document.addEventListener('DOMContentLoaded', () => {
     var sc = o.score || {};
     var rows = Object.keys(NEAG_LABELS).filter(function (k) { return sc[k] != null; })
       .map(function (k) { return '<tr><td>' + NEAG_LABELS[k] + '</td><td>' + neagEsc(String(sc[k])) + '</td></tr>'; }).join('');
-    var totalRow = '<tr class="tot"><td>Score total</td><td>' + (sc.total != null ? neagEsc(String(sc.total)) : '—') + '/90</td></tr>';
+    var totalRow = '<tr class="tot"><td>Score total</td><td>' + (sc.total != null ? neagEsc(String(sc.total)) : '—') + '/100</td></tr>';
     var atencao = (o.pontos || []).map(function (p) { return '<span class="neag-chip">' + neagEsc(p) + '</span>'; }).join('') || '<span class="neag-hint">Nenhum</span>';
     var ausentes = (o.ausentes || []).map(function (p) { return '<span class="neag-chip miss">' + neagEsc(p) + '</span>'; }).join('') || '<span class="neag-hint">Nenhum</span>';
     var bloqueio = o.bloqueado ? '<div class="neag-block">⛔ Caso REPROVADO no filtro INPI. Não seguir para NE sem orientação do Jurídico/CS.</div>' : '';
