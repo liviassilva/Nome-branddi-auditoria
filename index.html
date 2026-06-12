@@ -2179,9 +2179,10 @@ function renderResumo() {
   });
 
   CARTEIRAS_ALL.forEach(c => {
-    // Contar concluídos HOJE — APENAS cards que existem no allData (consistência com a tabela)
+    // Contar concluídos HOJE por analista — mesma base da contagem por carteira.
+    // (Cards finalizados saem da lista allData, então NÃO filtramos por idsComDados — era isso que zerava o painel.)
     Object.entries(controlData[c] || {}).forEach(([cardId, ctrl]) => {
-      if (isFinalizadoHoje(ctrl) && idsComDados.has(cardId) && analistaStats[ctrl.analista]) {
+      if (isFinalizadoHoje(ctrl) && analistaStats[ctrl.analista]) {
         analistaStats[ctrl.analista].total++;
         analistaStats[ctrl.analista].byCarteira[c] = (analistaStats[ctrl.analista].byCarteira[c] || 0) + 1;
       }
